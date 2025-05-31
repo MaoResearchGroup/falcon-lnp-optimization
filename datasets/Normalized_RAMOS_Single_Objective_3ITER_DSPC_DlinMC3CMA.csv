@@ -1,4 +1,4 @@
-﻿Formula_ label,Iter,Opt_Method,Cell_Target,Ionizable_Lipid,Helper_lipid,NP_ratio,HL_IL+HL,IL+HL,PEG_PEG+Chol,Dlin-MC3-DMA_PcntMolar,DSPC_PcntMolar,Cholesterol_PcntMolar,DMG-PEG2000_PcntMolar,Signal_1_norm,Signal_2_norm,Signal_3_norm,LnRLU_RAMOS_norm
+﻿Formula_label,Iter,Opt_Method,Cell_Target,Ionizable_Lipid,Helper_lipid,NP_ratio,HL_IL+HL,IL+HL,PEG_PEG+Chol,Dlin-MC3-DMA_PcntMolar,DSPC_PcntMolar,Cholesterol_PcntMolar,DMG-PEG2000_PcntMolar,Signal_1_norm,Signal_2_norm,Signal_3_norm,LnRLU_RAMOS
 1,0,Grid-Search,N/A,Dlin-MC3-DMA,DSPC,4,50,20,9.090909091,10,10,72.72727273,7.272727273,130.6064132,48.7741792,58.52901505,4.276303998
 2,0,Grid-Search,N/A,Dlin-MC3-DMA,DSPC,8,50,20,9.090909091,10,10,72.72727273,7.272727273,3.793547272,3.251611947,3.793547272,1.281917977
 3,0,Grid-Search,N/A,Dlin-MC3-DMA,DSPC,12,50,20,9.090909091,10,10,72.72727273,7.272727273,5.961288572,1.625805974,3.251611947,1.150147065
