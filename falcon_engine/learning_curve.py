@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 import pandas as pd
 import os
+from falcon_engine.utilities import print_slowly
 
 
 def get_learning_curve(pipeline, refined = False, NUM_ITER =5, num_splits =5, num_sizes= 50):
@@ -18,7 +19,7 @@ def get_learning_curve(pipeline, refined = False, NUM_ITER =5, num_splits =5, nu
                         'Valid_Error': None
                         }
     #Config
-    save_path = pipeline['Saving']['Diagnostics'] + 'learning_curve/'
+    save_path = pipeline['Saving']['Models'] + 'learning_curve/'
     if os.path.exists(save_path) == False:
         os.makedirs(save_path, 0o666)
     
@@ -44,12 +45,13 @@ def get_learning_curve(pipeline, refined = False, NUM_ITER =5, num_splits =5, nu
 
 
     #initialize training sizes
-    train_size= np.linspace(0.005, 1, num_sizes)*len(X)*(num_splits-1)/num_splits
+    max_train = int(len(X) * (num_splits - 1) / num_splits)
+    train_size = np.linspace(1, max_train, num_sizes).astype(int)
     train_size = np.floor(train_size).astype(int)
     train_scores_mean = pd.DataFrame(index=train_size)
     validation_scores_mean = pd.DataFrame(index=train_size)
     
-    print(f"\n############ Calculating Learning Curve: {model_name}_{c}############ ")
+    print_slowly(f"\n############ Calculating Learning Curve: {model_name}_{c} ############ ")
     #Train model and record performance
     for i in range(NUM_ITER):
         cross_val = KFold(n_splits= num_splits, random_state= i+10, shuffle=True)
@@ -94,5 +96,5 @@ def get_learning_curve(pipeline, refined = False, NUM_ITER =5, num_splits =5, nu
     pipeline['STEPS_COMPLETED']['Learning_Curve'] = True
 
     print('\n######## Learning_Curve Results Saved')
-    print("\n\n--- %s minutes for Learning Curve---" % ((time.time() - start_time)/60))  
+    print_slowly("\n\n--- %s minutes for Learning Curve---" % ((time.time() - start_time)/60))  
     return pipeline

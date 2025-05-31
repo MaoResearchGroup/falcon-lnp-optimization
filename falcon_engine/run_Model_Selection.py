@@ -4,6 +4,7 @@ import os
 from falcon_engine.Nested_CV import NESTED_CV
 import time
 from copy import deepcopy
+from falcon_engine.utilities import print_slowly
 
 """
 Function that:
@@ -19,7 +20,7 @@ Function that:
 def run_Model_Selection(pipeline):
 
 
-  print('\n###########################\n\n MODEL TRAINING AND HYPERPARAMETER OPTIMIZATION')
+  print_slowly('\n######### MODEL TRAINING AND HYPERPARAMETER OPTIMIZATION #####')
   start_time = time.time()
 
   #Config
@@ -30,7 +31,6 @@ def run_Model_Selection(pipeline):
   data = pipeline['Data_preprocessing']['all_proc_data']
   N_CV = pipeline['Model_Selection']['N_CV']
   save_path = pipeline['Saving']['Models']
-
 
   #Track optimized model results
   model_selection_results = pd.DataFrame(index = model_list, columns = ['Model', 'Hyper_Params', 'AE', 'MAE', 'Predictions'])
@@ -122,8 +122,8 @@ def run_Model_Selection(pipeline):
   pipeline['Model_Selection']['Best_Model']['Hyper_Params'] = selected_trained_model_HP
   pipeline['STEPS_COMPLETED']['Model_Selection'] = True
   
-  print(f'Selected Model: {selected_model_name} with estimated error = {selected_model_acc}')
-  print('Sucessfully save Model Selection Results and Update Pipeline')
-  print("\n\n--- %s minutes for MODEL SELECTION---" % ((time.time() - start_time)/60))
+  print_slowly(f'Selected Model: {selected_model_name} with estimated error = {selected_model_acc}')
+  print_slowly('Sucessfully save Model Selection Results and Update Pipeline')
+  print_slowly("\n\n--- %s minutes for MODEL SELECTION---" % ((time.time() - start_time)/60))
 
   return pipeline, model_instance.CV_dataset, model_instance.best_model, model_instance.best_model_params

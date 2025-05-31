@@ -1,11 +1,13 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import pickle
+import sys
+import time 
 import os
 
 def init_pipeline(pipeline_path, RUN_NAME, cell, param_type, data_file_path, prefix, RLU_floor, N_CV, model_list ):
     
-    print('\n\n########## INITIALIZING MODEL TRAINING PIPELINE ##############\n\n')
+    print_slowly('\n\n########## INITIALIZING MODEL TRAINING PIPELINE ##############\n\n')
     #Saving/Loading
     model_save_path           = f"output/{RUN_NAME}/{cell}/" # Where to save model, results, and training data 
     
@@ -14,7 +16,6 @@ def init_pipeline(pipeline_path, RUN_NAME, cell, param_type, data_file_path, pre
                         'PEG_PEG+Chol',
                         'IL+HL',
                         'HL_IL+HL'] 
-    print(f"INPUT PARAMS: {input_param_names}")
     
     #initialize Pipeline Config and Data Storage Dictionary
     pipeline_dict = {'Cell' : cell,
@@ -121,3 +122,41 @@ def extract_training_data(pipeline):
     pipeline['STEPS_COMPLETED']['Preprocessing'] = True
 
     return pipeline, X,Y, processed_data
+def print_slowly(text, delay=0.03):
+    for char in text:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(delay)
+    print()
+def startup_banner():
+    os.system('cls' if os.name == 'nt' else 'clear')  # Clear terminal
+    banner = r"""
+
+███████╗ █████╗ ██╗      ██████╗ ██████╗ ███╗   ██╗
+██╔════╝██╔══██╗██║     ██╔════╝██╔═══██╗████╗  ██║
+█████╗  ███████║██║     ██║     ██║   ██║██╔██╗ ██║
+██╔══╝  ██╔══██║██║     ██║     ██║   ██║██║╚██╗██║
+██║     ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║
+╚═╝     ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝                                      
+"""
+    print_slowly(banner, delay=0.0015)
+
+    meta_info = """
+Author       : Enoch Toh
+Version      : FALCON v1.0
+Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Selective LNP Design
+Repository   : https://github.com/MaoResearchGroup/falcon-lnp-optimization
+------------------------------------------------------------
+"""
+    #print meta_info normally 
+    print(meta_info)
+    steps = [
+        "Initializing FALCON Engine...",
+        "Ready to launch 🚀"
+    ]
+
+    for step in steps:
+        print_slowly(step, delay=0.04)
+        time.sleep(0.3)
+
+    time.sleep(0.5)  # Pause before next action

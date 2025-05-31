@@ -23,6 +23,7 @@ from sklearn.neural_network import MLPRegressor
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+from falcon_engine.utilities import print_slowly
 
 class NESTED_CV:
   
@@ -248,7 +249,7 @@ class NESTED_CV:
           print('\n################################################################\n\nSTATUS REPORT:')
           print('Iteration '+str(i+1)+' of '+str(NUM_TRIALS)+' runs completed') 
           print('Best_Valid_Score: %.3f, Hold_Out_MAE: %.3f,  Hold_Out_Spearman_Rank: %.3f, Hold_Out_Pearsons_R: %.3f, \n\nBest_Model_Params: \n%s' % (best_score, acc, spearmans_rank[0], pearsons_r[0], result.best_params_))
-          print("\n################################################################\n ")
+          #print("\n################################################################\n ")
           
     def results(self):   
         #create dataframe with results of nested CV
@@ -265,6 +266,7 @@ class NESTED_CV:
         CV_dataset['Score_difference'] = abs(CV_dataset['Valid Score (MAE)'] - CV_dataset['Test Score (MAE)']) #Groupby dataframe model iterations that best fit the data (i.e., minimize different between validitaion and test)
         #CV_dataset.sort_values(by=['Score_difference', 'Test Score (MAE)'], ascending=True, inplace=True) 
         CV_dataset = CV_dataset.reset_index(drop=True) # Reset index of dataframe
+        print('\n\n################################################################\n\n')
         print('Cross Validation Results', CV_dataset)
         # save the results as a class object
         self.CV_dataset = CV_dataset
@@ -315,11 +317,12 @@ class NESTED_CV:
         mean_baseline_se = float(mean_baseline_AE.std(ddof=1)) / np.sqrt(n)
         median_baseline_se = float(median_baseline_AE.std(ddof=1)) / np.sqrt(n)
       
-        print('\n################################################################\n\n BEST MODEL FINAL HOLD_OUT PERFORMANCE:')
-        print(f'FINAL_Hold_Out_MAE: {acc:.3f} ± {model_AE_se:.3f}')
-        print(f'FINAL_Hold_Out_Spearman_Rank: {spearmans_rank[0]:.3f}, FINAL_Hold_Out_Pearsons_R: {pearsons_r[0]:.3f}')
-        print(f'Mean Baseline MAE: {mean_baseline_MAE:.3f} ± {mean_baseline_se:.3f}')
-        print(f'Median Baseline MAE: {median_baseline_MAE:.3f} ± {median_baseline_se:.3f}\n')
+        print_slowly('\n################################################################\n\n BEST MODEL FINAL HOLD_OUT PERFORMANCE:')
+        print_slowly(f'FINAL_Hold_Out_MAE: {acc:.3f} ± {model_AE_se:.3f}')
+        print_slowly(f'FINAL_Hold_Out_Spearman_Rank: {spearmans_rank[0]:.3f}, FINAL_Hold_Out_Pearsons_R: {pearsons_r[0]:.3f}')
+        print('\n')
+        print_slowly(f'Mean Baseline MAE: {mean_baseline_MAE:.3f} ± {mean_baseline_se:.3f}')
+        print_slowly(f'Median Baseline MAE: {median_baseline_MAE:.3f} ± {median_baseline_se:.3f}\n')
 
         return AE, acc, model_AE_se, spearmans_rank, pearsons_r, pred_df, mean_baseline_MAE, mean_baseline_se, median_baseline_MAE, median_baseline_se
 
