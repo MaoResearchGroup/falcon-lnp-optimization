@@ -2,6 +2,7 @@
 from falcon_engine.utilities import extract_training_data, init_pipeline, save_pipeline, startup_banner
 from falcon_engine.run_Model_Selection import run_Model_Selection 
 from falcon_engine import learning_curve
+import pickle
 
 """
 run_FALCON script
@@ -39,10 +40,10 @@ def main():
   run_optimization = True # set true unless de novo formulation generation is not desired 
 
   ########################################################################
-
-  LnRLU_floor = 2.5 #cutoff below which LnRLU values are considered 0
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
+
   if run_model_training == True:  
+    LnRLU_floor = 2.5 #cutoff below which LnRLU values are considered 0
     for c in cell_type_list:   #Loop through model training for each cell type of interest
       pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
       #Initialize new model pipeline
@@ -58,9 +59,17 @@ def main():
       pipeline_dict, _, _, _= extract_training_data(pipeline_dict) 
       pipeline_dict, _, _, _ = run_Model_Selection(pipeline_dict)
       pipeline_dict = learning_curve.get_learning_curve(pipeline_dict, refined = False)
-                
-      #################### Saving Pipeline Config and Results #####################################
       save_pipeline(pipeline=pipeline_dict, path = pipeline_path, step = 'FINAL SAVE')  
+  
+  if run_optimization == True:
+    #Run optimization for each cell type
+    for c in MAX_cell_targets:
+      pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
+      with open(pipeline_path, 'rb') as file:
+        pipeline_dict = pickle.load(file)
+      #Run optimization
+      from falcon_engine.run_optimization import run_optimization
+      run_optimization(pipeline_dict, opt_method=opt_method, num_formulations=num_formulations)
 
 if __name__ == "__main__":
     startup_banner()
