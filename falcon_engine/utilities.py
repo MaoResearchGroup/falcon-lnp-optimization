@@ -152,7 +152,7 @@ def startup_banner():
     print_slowly(banner, delay=0.0015)
 
     meta_info = """
-Author       : Enoch Toh
+Author       : Wu Han (Enoch) Toh
 Version      : FALCON v1.0
 Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Selective LNP Design
 License      : MIT License

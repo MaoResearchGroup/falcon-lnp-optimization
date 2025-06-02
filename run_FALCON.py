@@ -1,6 +1,7 @@
 
 from falcon_engine.utilities import extract_training_data, init_pipeline, save_pipeline, startup_banner
 from falcon_engine.run_Model_Selection import run_Model_Selection 
+from falcon_engine.run_optimization import run_optimization_pipeline
 from falcon_engine import learning_curve
 import pickle
 
@@ -18,17 +19,17 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_method = 'DA' # DA or BO or NSGAII
+  opt_method = 'NSGAII' # DA or BO or NSGAII
   num_formulations = 12 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['Skewed_Diff']
-  MIN_cell_targets = []
+  MAX_cell_targets = ['THP1']
+  MIN_cell_targets = ['RAMOS']
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
   #model training will be done for each cell type in this list
-  #DA and BO will only use first cell type in this list, NSGAII will use all cell types
+  #DA and BO will only use first cell type in this list for maximization, NSGAII will use all cell types
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
@@ -36,8 +37,8 @@ def main():
   DATASET_NAME = 'Normalized_RAMOS_THP1_Dual_Objective_4ITER_DSPC_DlinMC3DMA' #Name of the csv file, used to extract training data
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True # set true unless model is already trained and saved in output folder
-  run_optimization = False # set true unless de novo formulation generation is not desired 
+  run_model_training = False # set true unless model is already trained and saved in output folder
+  run_optimization = True # set true unless de novo formulation generation is not desired 
 
   ########################################################################
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
@@ -62,14 +63,7 @@ def main():
       save_pipeline(pipeline=pipeline_dict, path = pipeline_path, step = 'FINAL SAVE')  
   
   if run_optimization == True:
-    #Run optimization for each cell type
-    for c in MAX_cell_targets:
-      pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
-      with open(pipeline_path, 'rb') as file:
-        pipeline_dict = pickle.load(file)
-      #Run optimization
-      from falcon_engine.run_optimization import run_optimization
-      run_optimization(pipeline_dict, opt_method=opt_method, num_formulations=num_formulations)
+    run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME)
 
 if __name__ == "__main__":
     startup_banner()
