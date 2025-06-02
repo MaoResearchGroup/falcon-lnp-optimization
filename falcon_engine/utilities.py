@@ -11,7 +11,7 @@ def init_pipeline(pipeline_path, RUN_NAME, cell, param_type, data_file_path, pre
     #Saving/Loading
     model_save_path           = f"output/{RUN_NAME}/{cell}/" # Where to save model, results, and training data 
     
-    #Input_Params
+    #Input_Params (do not change unless you change the dataset)
     input_param_names = ['NP_ratio',
                         'PEG_PEG+Chol',
                         'IL+HL',
@@ -34,7 +34,8 @@ def init_pipeline(pipeline_path, RUN_NAME, cell, param_type, data_file_path, pre
                         'Input_Params': input_param_names,
                         'prefix' : prefix,
                         'RLU_floor':RLU_floor, 
-                        'Scaler': None,
+                        'Scalers': {},
+                        'Output_Scaler': None,
                         'X' : None, 
                         'y': None, 
                         'all_proc_data' : None,
@@ -107,6 +108,14 @@ def extract_training_data(pipeline):
     print("Input Parameters used:", input_params)
     print("Number of Datapoints used:", len(processed_data.index))
 
+    scalers = {}
+
+    for param in input_params:
+        scaler = MinMaxScaler()
+        processed_data[param] = scaler.fit_transform(processed_data[[param]])
+        scalers[param] = scaler
+
+
     X = processed_data[input_params]                         
     Y = processed_data[prefix + cell_type].to_numpy()
     scaler = MinMaxScaler().fit(Y.reshape(-1,1))
@@ -114,7 +123,8 @@ def extract_training_data(pipeline):
     Y = pd.DataFrame(temp_Y, columns = ["Scaled_" + prefix + cell_type])
 
     #Update Pipeline dictionary
-    pipeline['Data_preprocessing']['Scaler'] = scaler
+    pipeline['Data_preprocessing']['Output_Scaler'] = scaler
+    pipeline['Data_preprocessing']['Scalers'] = scalers
     pipeline['Data_preprocessing']['X'] = X
     pipeline['Data_preprocessing']['y'] = Y
     pipeline['Data_preprocessing']['all_proc_data'] = processed_data
@@ -145,7 +155,9 @@ def startup_banner():
 Author       : Enoch Toh
 Version      : FALCON v1.0
 Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Selective LNP Design
+License      : MIT License
 Repository   : https://github.com/MaoResearchGroup/falcon-lnp-optimization
+Affiliation  : Mao Research Group, Institute for NanoBioTechnology (INBT), Johns Hopkins University  
 ------------------------------------------------------------
 """
     #print meta_info normally 

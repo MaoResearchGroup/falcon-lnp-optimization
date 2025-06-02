@@ -1,0 +1,22 @@
+name: falcon-env
+channels:
+  - conda-forge
+dependencies:
+  # Python & Jupyter
+  - python=3.11
+  - notebook
+  - jupyterlab
+
+  # Core Python packages
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - seaborn
+
+  # R support
+  - r-base
+  - r-essentials  # Includes IRkernel, tidyverse, ggplot2, etc.
+  - r-data.table
+
+

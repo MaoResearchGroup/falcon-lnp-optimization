@@ -23,7 +23,7 @@ def main():
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['RAMOS']
+  MAX_cell_targets = ['Skewed_Diff']
   MIN_cell_targets = []
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
@@ -32,18 +32,18 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "0530_test" #Give a name for run folder to save any trained models
-  DATASET_NAME = 'Normalized_RAMOS_Single_Objective_3ITER_DSPC_DlinMC3CMA' #Name of the csv file, used to extract training data
+  RUN_NAME = "dual_obj_demo" #Give a name for run folder to save any trained models
+  DATASET_NAME = 'Normalized_RAMOS_THP1_Dual_Objective_4ITER_DSPC_DlinMC3DMA' #Name of the csv file, used to extract training data
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = True # set true unless model is already trained and saved in output folder
-  run_optimization = True # set true unless de novo formulation generation is not desired 
+  run_optimization = False # set true unless de novo formulation generation is not desired 
 
   ########################################################################
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
 
   if run_model_training == True:  
-    LnRLU_floor = 2.5 #cutoff below which LnRLU values are considered 0
+    LnRLU_floor = -1000 #cutoff below which LnRLU values are considered 0
     for c in cell_type_list:   #Loop through model training for each cell type of interest
       pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
       #Initialize new model pipeline
