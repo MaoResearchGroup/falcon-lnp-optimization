@@ -29,7 +29,7 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['NSGAII'] # DA or BO or NSGAII
+  opt_methods = ['NSGAII'] # DA, BO, NSGAII
   num_formulations = 3 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
@@ -55,7 +55,8 @@ def main():
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
 
   # Input_Params (features to be used for model training and prediction) 
-  input_param_names = ['NP_ratio',
+  # 'NP_ratio', --> remove this param for now
+  input_param_names = [
                        'PEG_PEG+Chol',
                         'IL+HL',
                         'HL_IL+HL'] 

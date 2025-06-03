@@ -120,13 +120,24 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         res = minimize(
             problem,
             algorithm,
-            termination=('n_gen', 200), # number of generations temporary 
+            termination=('n_gen', 250), # number of generations temporary 
             seed=1,
             save_history=True,
             verbose=True
         )
-         # print completion 
-        print_slowly("NSGA-II optimization completed, saving all evaluations...")
+
+        print_slowly("NSGA-II optimization completed, exporting result for subsequent analysis...")
+        all_F = np.vstack([np.array([ind.F for ind in gen.pop]) for gen in res.history])
+        export_dict = {
+            'pareto_F': res.F,
+            'all_F': all_F,
+            'cell_type_names': cell_type_list,
+            'pareto_X': res.X,
+            'direction': direction
+        }
+
+        with open(f'output/{RUN_NAME}/NSGAII_results.pkl', "wb") as f:
+            pickle.dump(export_dict, f)
 
         # save all the evlaluations 
         all_X = np.vstack([gen.pop.get("X") for gen in res.history])
