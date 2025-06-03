@@ -27,8 +27,11 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     print_slowly('\n######### DE NOVO FORMULATION SEARCH #####')
     print_slowly(f"Optimization Algorithm: {opt_method}")
     print_slowly(f"Number of Formulations: {num_formulations}")
-    print_slowly(f"Max Cell Targets: {MAX_cell_targets}")
-    print_slowly(f"Min Cell Targets: {MIN_cell_targets}")
+    if opt_method in ['DA', 'BO']:
+        print_slowly(f"Max Cell Target: {MAX_cell_targets[0]}")
+    else:
+        print_slowly(f"Max Cell Targets: {MAX_cell_targets}")
+        print_slowly(f"Min Cell Targets: {MIN_cell_targets}")
 
     start_time = time.time()
 
@@ -65,7 +68,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
             reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[maximal_x[i]]])[0][0] for i in range(len(maximal_x))]
             reversed_y = output_scalars[cell_type_list[0]].inverse_transform(np.array(maximal_y).reshape(-1, 1))[0][0]
             if (valid_formulation(reversed_x, input_param_names)): 
-                optimized_formulations.append((reversed_x, reversed_y))
+                optimized_formulations.append((reversed_x, reversed_y, opt_method))
                 #print the optimized formulation
                 formatted_params = ", ".join(
                     f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
@@ -96,7 +99,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
             reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[maximal_x[i]]])[0][0] for i in range(len(maximal_x))]
             reversed_y = output_scalars[cell_type_list[0]].inverse_transform(np.array(maximal_y).reshape(-1, 1))[0][0]
             if (valid_formulation(reversed_x, input_param_names)): 
-                optimized_formulations.append((reversed_x, reversed_y))
+                optimized_formulations.append((reversed_x, reversed_y, opt_method))
                 #print the optimized formulation
                 formatted_params = ", ".join(
                     f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
@@ -111,7 +114,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         mutation = AdaptiveMutation(base_prob=0.1, eta=20)
         direction = [-1] * len(MAX_cell_targets) + [1] * len(MIN_cell_targets)
         ordered_models = [models[cell] for cell in cell_type_list]
-        problem = FormulationOptimizationProblem(direction, *ordered_models)
+        problem = FormulationOptimizationProblem(direction, input_param_names, *ordered_models)
         algorithm = NSGA2(pop_size=500, sampling=sampling, crossover=crossover, mutation=mutation, eliminate_duplicates=True)
         # Run the optimization
         res = minimize(
@@ -146,15 +149,15 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         front = nds.do(obj, only_non_dominated_front=True)
         pareto_solutions = pop[front]
 
-        optimized_formulations = greedy_selection(pareto_solutions, num_formulations, input_param_names, models, input_scalars, output_scalars, cell_type_list)
+        optimized_formulations = greedy_selection(pareto_solutions, num_formulations, input_param_names, models, input_scalars, output_scalars, cell_type_list, opt_method)
       
     print_slowly("\n\n--- %s minutes for OPTIMIZED FORMULATION GENERATION ---" % ((time.time() - start_time)/60))
 
     print_slowly("\n\n--- EXPORTING ALL EVALUATIONS to csv ---")
     # Save all evaluations to a CSV file
     evaluations_df = pd.DataFrame(all_evaluations)
-    evaluations_df.to_csv(f'output/{RUN_NAME}/all_evaluations.csv', index=False)
-    print_slowly(f"All evaluations saved to output/{RUN_NAME}/all_evaluations.csv")
+    evaluations_df.to_csv(f'output/{RUN_NAME}/{opt_method}_all_evaluations.csv', index=False)
+    print_slowly(f"All evaluations saved to output/{RUN_NAME}/{opt_method}_all_evaluations.csv")
 
     return optimized_formulations
 
@@ -199,9 +202,11 @@ def valid_formulation(formulation, input_param_names):
 
 # NSGAII: modified Problem class to handle multiple XGBoost models
 class FormulationOptimizationProblem(Problem):
-    def __init__(self, direction, *xgb_models):
-        super().__init__(n_var=4, n_obj=len(xgb_models), n_constr=0, xl=0, xu=1.2)
+    def __init__(self, direction, input_param_names,*xgb_models):
+        super().__init__(n_var=len(input_param_names), n_obj=len(xgb_models), n_constr=0, xl=0, xu=1.2)
+        
         self.direction = direction
+        self.input_param_names = input_param_names
 
         for i, model in enumerate(xgb_models, start=1):
             setattr(self, f"xgb_model_y{i}", model)
@@ -246,7 +251,7 @@ class AdaptiveCrossover(Crossover):
         return SimulatedBinaryCrossover(prob=prob, eta=self.eta)._do(problem, X, **kwargs)
     
 # Diversity-weighted greedy selection of points
-def greedy_selection(points, n_select, input_param_names, models, input_scalars, output_scalars, cell_type_list):
+def greedy_selection(points, n_select, input_param_names, models, input_scalars, output_scalars, cell_type_list, opt_method):
     selected_normalized = []        # For diversity calculation
     optimized_formulations = []     # Final output: (reversed_x, y_dict)
     remaining = points.tolist()
@@ -275,7 +280,7 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
         if valid_formulation(reversed_x, input_param_names):
             y_dict = predict_all_outputs(x)
             selected_normalized.append(x)
-            optimized_formulations.append((reversed_x, y_dict))
+            optimized_formulations.append((reversed_x, y_dict, opt_method))
             remaining.remove(x)
 
             print_slowly(
@@ -298,7 +303,7 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
         if valid_formulation(reversed_x, input_param_names):
             y_dict = predict_all_outputs(next_point)
             selected_normalized.append(next_point)
-            optimized_formulations.append((reversed_x, y_dict))
+            optimized_formulations.append((reversed_x, y_dict, opt_method))
             remaining.remove(next_point)
             print_slowly(
                 f"Optim. Form. {len(optimized_formulations)}: "
