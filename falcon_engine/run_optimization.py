@@ -156,11 +156,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     evaluations_df.to_csv(f'output/{RUN_NAME}/all_evaluations.csv', index=False)
     print_slowly(f"All evaluations saved to output/{RUN_NAME}/all_evaluations.csv")
 
-    # export optimized formulations to a CSV file
-    print_slowly("\n\n--- EXPORTING OPTIMIZED FORMULATIONS to csv ---")
-    
-
-
+    return optimized_formulations
 
 # objective function for BO (single-objective only)
 def objective_fcn_BO(model, input_param_names=None, output_scaler = None, all_evaluations=None, **params):
@@ -275,14 +271,19 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
 
     # Step 1: Pick the first valid point
     for x in remaining:
-        if valid_formulation(x, input_param_names):
-            reversed_x = inverse_transform_input(x)
+        reversed_x = inverse_transform_input(x)
+        if valid_formulation(reversed_x, input_param_names):
             y_dict = predict_all_outputs(x)
             selected_normalized.append(x)
             optimized_formulations.append((reversed_x, y_dict))
             remaining.remove(x)
 
-            print_slowly(f"Optimized Formulation 1: {', '.join(f'{n}: {v:.3f}' for n, v in zip(input_param_names, reversed_x))} -> {', '.join(f'{k}: {v:.3f}' for k, v in y_dict.items())}")
+            print_slowly(
+                f"Optim. Form. {len(optimized_formulations)}: "
+                + ', '.join(f"{n}: {v:.3f}" for n, v in zip(input_param_names, reversed_x))
+                + " -> "
+                + ', '.join(f"Pred. LnRLU_{k}: {v:.3f}" for k, v in y_dict.items())
+            )
             break
     else:
         raise RuntimeError("No valid initial formulation found.")
@@ -293,15 +294,18 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
             remaining,
             key=lambda x: min(np.linalg.norm(np.array(x) - np.array(prev_x)) for prev_x in selected_normalized)
         )
-
-        if valid_formulation(next_point, input_param_names):
-            reversed_x = inverse_transform_input(next_point)
+        reversed_x = inverse_transform_input(next_point)
+        if valid_formulation(reversed_x, input_param_names):
             y_dict = predict_all_outputs(next_point)
             selected_normalized.append(next_point)
             optimized_formulations.append((reversed_x, y_dict))
             remaining.remove(next_point)
-
-            print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {', '.join(f'{n}: {v:.3f}' for n, v in zip(input_param_names, reversed_x))} -> {', '.join(f'{k}: {v:.3f}' for k, v in y_dict.items())}")
+            print_slowly(
+                f"Optim. Form. {len(optimized_formulations)}: "
+                + ', '.join(f"{n}: {v:.3f}" for n, v in zip(input_param_names, reversed_x))
+                + " -> "
+                + ', '.join(f"Pred. LnRLU_{k}: {v:.3f}" for k, v in y_dict.items())
+            )
         else:
             print_slowly(f"Invalid formulation found: {next_point}, skipping...")
 

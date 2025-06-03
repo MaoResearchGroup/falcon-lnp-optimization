@@ -5,17 +5,11 @@ import sys
 import time 
 import os
 
-def init_pipeline(pipeline_path, RUN_NAME, cell, param_type, data_file_path, prefix, RLU_floor, N_CV, model_list ):
+def init_pipeline(pipeline_path, input_param_names, RUN_NAME, cell, param_type, data_file_path, prefix, RLU_floor, N_CV, model_list ):
     
     print_slowly('\n\n########## INITIALIZING MODEL TRAINING PIPELINE ##############\n\n')
     #Saving/Loading
     model_save_path           = f"output/{RUN_NAME}/{cell}/" # Where to save model, results, and training data 
-    
-    #Input_Params (do not change unless you change the dataset)
-    input_param_names = ['NP_ratio',
-                        'PEG_PEG+Chol',
-                        'IL+HL',
-                        'HL_IL+HL'] 
     
     #initialize Pipeline Config and Data Storage Dictionary
     pipeline_dict = {'Cell' : cell,
@@ -152,7 +146,7 @@ def startup_banner():
     print_slowly(banner, delay=0.0015)
 
     meta_info = """
-Author       : Wu Han (Enoch) Toh
+Author(s)    : Wu Han (Enoch) Toh et al.
 Version      : FALCON v1.0
 Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Selective LNP Design
 License      : MIT License

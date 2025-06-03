@@ -320,7 +320,6 @@ class NESTED_CV:
         print_slowly('\n################################################################\n\n BEST MODEL FINAL HOLD_OUT PERFORMANCE:')
         print_slowly(f'FINAL_Hold_Out_MAE: {acc:.3f} ± {model_AE_se:.3f}')
         print_slowly(f'FINAL_Hold_Out_Spearman_Rank: {spearmans_rank[0]:.3f}, FINAL_Hold_Out_Pearsons_R: {pearsons_r[0]:.3f}')
-        print('\n')
         print_slowly(f'Mean Baseline MAE: {mean_baseline_MAE:.3f} ± {mean_baseline_se:.3f}')
         print_slowly(f'Median Baseline MAE: {median_baseline_MAE:.3f} ± {median_baseline_se:.3f}\n')
 
@@ -329,7 +328,7 @@ class NESTED_CV:
     def best_model_refit(self):
         # assign the best model hyperparameters
         self.best_model_params = self.CV_dataset.iloc[0,5]
-        print('\nFinal_Best_Model_Params: \n%s' % self.best_model_params)
+        # print('\nFinal_Best_Model_Params: \n%s' % self.best_model_params)
         # set params from the best model to a class object
         best_model = self.user_defined_model.set_params(**self.best_model_params)
         y_train = self.y.copy()
