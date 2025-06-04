@@ -5,15 +5,17 @@ from falcon_engine.run_optimization import run_optimization_pipeline
 from falcon_engine import learning_curve
 import pandas as pd
 from falcon_engine.utilities import print_slowly
+from falcon_engine.run_mantis_formatter import run_mantis_formatter_pipeline
 
 """
 run_FALCON script
 
 - Main script for end-to-end execution of FALCON computational pipeline: 
   - Part 1 (surrogate model training): trains XGBoost models to predict LNP transfection in specified cell types
-  - Part 2 (optimization) leverages ML-guided algorithms to suggest LNP compositions for experimental testing.
-  - Part 3 (optional) formats optimized formulations for MANTIS liquid handler input 
-  - note: each part can be run independently by setting corresponding flags to True or False
+  - Part 2 (optimization): leverages ML-guided algorithms to suggest LNP compositions for experimental testing.
+  - Part 3 (optional add on): formats optimized compositions for MANTIS liquid handler input 
+  - note: parts 1 and 2 can be run independently by setting corresponding flags to True or False. 
+    - part 3 can only be run if part 2 is also run
 - To run: follow 4 steps in main function to configure pipeline, then run script
   - Adjustable parameters:
     - Optimization method: DA, BO, or NSGAII (opt_method)
@@ -29,13 +31,13 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['NSGAII'] # DA, BO, NSGAII
-  num_formulations = 3 #Default = 12 
+  opt_methods = ['BO'] # DA, BO, NSGAII
+  num_formulations = 5 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
   MAX_cell_targets = ['RAMOS']
-  MIN_cell_targets = ['THP1'] # set as empty list if no minimization is desired (not '') 
+  MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
   #model training will be done for each cell type in this list
@@ -43,20 +45,20 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "flexible_param_test" #Give a name for run folder to save any trained models
+  RUN_NAME = "test_mantis_formatting" #Give a name for run folder to save any trained models
   DATASET_NAME = 'Normalized_RAMOS_THP1_Dual_Objective_4ITER_DSPC_DlinMC3DMA' #Name of the csv file, used to extract training data
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = False # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
-  run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
+  run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
 
   # Input_Params (features to be used for model training and prediction) 
-  # 'NP_ratio', --> remove this param for now
-  input_param_names = [
+  # remove for now - 'NP_ratio',
+  input_param_names = [ 'NP_ratio',
                        'PEG_PEG+Chol',
                         'IL+HL',
                         'HL_IL+HL'] 
@@ -122,7 +124,7 @@ def main():
     print(f"Optimized formulations saved to {output_file_path}")
 
   if run_mantis_formatter == True:
-    print_slowly("\n\n--- FORMATTING OPTIMIZED FORMULATIONS FOR MANTIS ---")
+    run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formulations)
 
 if __name__ == "__main__":
     startup_banner()

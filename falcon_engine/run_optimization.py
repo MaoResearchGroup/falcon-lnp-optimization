@@ -73,7 +73,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 formatted_params = ", ".join(
                     f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
                 )
-                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted RLU: {reversed_y}") 
+                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
             else: 
                 print_slowly(f"Invalid formulation found: {reversed_x}, skipping...")
     elif opt_method == 'BO':
@@ -104,7 +104,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 formatted_params = ", ".join(
                     f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
                 )
-                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted RLU: {reversed_y}") 
+                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
             else: 
                 print_slowly(f"Invalid formulation found: {reversed_x}, skipping...")
     elif opt_method == 'NSGAII':
@@ -207,7 +207,7 @@ def valid_formulation(formulation, input_param_names):
             if formulation[i] < 0 or formulation[i] > 100:
                 return False 
         if input_param_names[i] == 'NP_ratio':
-            if formulation[i] < 0 or formulation[i] > 25: # cap at 25 for NP_ratio
+            if formulation[i] < 0 or formulation[i] > 30: # cap at 25 for NP_ratio
                 return False
     return True
 
