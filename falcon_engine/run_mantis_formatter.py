@@ -4,6 +4,7 @@ import os
 import platform 
 import subprocess 
 from falcon_engine.utilities import print_slowly
+from openpyxl.utils import get_column_letter
 import pandas as pd
 
 def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formulations): 
@@ -24,24 +25,29 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     wb = openpyxl.load_workbook(dst)
     ws = wb["Formulations"] 
     reversed_x = optimized_formulations[0]
+    opt_methods = optimized_formulations[2]
 
     #take user input for IL and HL names
-    IL_name = input("Enter the name of the Ionizable Lipid (IL)\n(Choose SM102, Dlin, or ALC0315): ")
+    IL_name = input("Enter the name of your Ionizable Lipid used (IL)\n(Choose SM102, Dlin, or ALC0315): ")
     HL_name = input(
-        "Enter the name of the Helper Lipid (HL)\n"
+        "Enter the name of your Helper Lipid used (HL)\n"
         "(Choose from: DOTAP, DSPC, 18PG, DOPE, DDAB, 14PA, 18MP): "
     )
 
     for i in range(len(reversed_x)): 
       for j, param_name in enumerate(excel_param_order):
         row_idx = 10 + j
-        col_letter = chr(ord('C') + i)
+        col_letter = get_column_letter(3 + i)
         value = reversed_x[i][param_index_lookup[param_name]]
         ws[f"{col_letter}{row_idx}"] = round(value, 3)
         ws[f"{col_letter}6"] = IL_name 
         ws[f"{col_letter}7"] = HL_name 
         ws[f"{col_letter}8"] = "Chol"
         ws[f"{col_letter}9"] = "DMG_PEG" 
+
+        ws[f"{col_letter}3"] = i 
+        ws[f"{col_letter}4"] =  opt_methods[i]
+
     wb.save(dst)
     print(f"Optimized formulations formatted for MANTIS and saved to {dst}")
 

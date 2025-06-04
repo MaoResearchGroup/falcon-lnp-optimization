@@ -14,9 +14,9 @@ def init_pipeline(pipeline_path, input_param_names, RUN_NAME, cell, param_type, 
     #initialize Pipeline Config and Data Storage Dictionary
     pipeline_dict = {'Cell' : cell,
                     'STEPS_COMPLETED':{
-                        'Preprocessing': False,
-                        'Model_Selection': False,
-                        'Learning_Curve': False
+                        'Preprocessing': True,
+                        'Model_Selection': True,
+                        'Learning_Curve': True
                         },
                     'Saving':{
                         'RUN_NAME': RUN_NAME,
