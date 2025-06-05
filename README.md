@@ -1,43 +1,54 @@
 # falcon-lnp-optimization
 Repository for the paper "FALCON: A Machine Learning-Driven Platform for Multi-Objective Optimization of mRNA Lipid Nanoparticle Composition Towards Cell Type-Selective Transfection"
 
-### 🦅 What is FALCON?
+## 🦅 What is FALCON?
 
-**FALCON** (_**F**ramework for **A**ctive-**L**earning driven **C**ompositional **O**ptimization of **N**anoparticles_) is a closed-loop experimental-computational pipeline developed by the Hai-Quan Mao lab for intelligent and accelerated design of cell type-selective lipid nanoparticle (LNP) formulations.  
+**FALCON** (_**F**ramework for **A**ctive-**L**earning driven **C**ompositional **O**ptimization of **N**anoparticles_) is a closed-loop experimental-computational pipeline developed by the [Hai-Quan Mao Lab](https://maogroup.jhu.edu/) for intelligent and accelerated design of cell type-selective lipid nanoparticle (LNP) formulations.  
 
-### 🔑 Key Capabilities
+####   Key Capabilities:
 
 - **Multi-objective optimization.** Learns to simultaneously *maximize* delivery to desired cell types while *minimizing* off-target effects, improving the efficacy and safety profile of LNPs.
 
-- **Data-efficient formulation design.** Requires only a sparse initial dataset to begin optimization and can rapidly identify informative candidates to test via active learning, reducing experimental burden.
+- **Data-efficient formulation design.** Requires only a _sparse initial dataset_ to begin optimization and can rapidly identify informative candidates to test via active learning, reducing experimental burden.
 
-- **Exhaustive and rational search.** Surrogate model-guided search algorithms test thousands of formulation candiates in silico, outperform brute-force grid search in experiments, and enable interpretability of cell type-selective design principles.
+- **Exhaustive and rational search.** Surrogate model-guided search algorithms test _hundreds of thousands_ of candidates in silico, outperform brute-force grid search in experiments, and enable interpretability of cell type-selective design principles.
   
 - **Modular and flexible architecture**. Supports different cell types, cargo types, and optimization goals.
 
 - **End-to-end integration.** FALCON processes raw input data and outputs formatted formulation tables compatible with automated liquid handlers (e.g., MANTIS)
   
-![FALCON Pipeline Schematic](manuscript_figures/fig1_0530.jpeg)
-<details>
-<summary><strong>Figure 1. Schematic Overview of Full FALCON workflow</strong></summary>
+<img src="manuscript_figures/fig1_0530.jpeg" alt="FALCON Pipeline Schematic" width="1000"/>
+<strong>Figure 1. Schematic Overview of Full FALCON Workflow</strong>
 
-**a.** Pipeline starting point. An initial sparse grid-search library is designed by varying parameters influencing the relative ratio of LNP lipid components and payload. Cell type objectives (e.g., maximize or minimize transfection) are defined to enable cell-selective optimization.  
-**b.** Illustration of the DTBL framework for ML-driven optimization. Each cycle consisted of 4 steps:  
-  1. Candidate LNPs are formulated and treated to cells  
-  2. Transfection is quantified by luciferase expression  
-  3. The resulting composition-function dataset is used to train or refine a surrogate ML model  
-  4. The trained model guides an exhaustive search to identify LNPs for the next round.
-**c.** Pipeline endpoint. After convergence, the expanded dataset can be used to train a final model, which is interpreted using SHAP analysis to uncover design rules for cell-selective LNPs.  
 
-*This figure was created with BioRender.com and is released under a [Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International license](https://creativecommons.org/licenses/by-nc-nd/4.0/).*
-
-</details>
-
-source data for experimentally obtained values reported in the manuscript are available in source_data. Figures derived from model outputs or computational analysis are reproducible with the codebase and script provided
-
+  
 ## 📁 Repository Overview
 
-## ⚙️ Environment Setup
+This repository contains all code, data, and scripts needed to reproduce the FALCON pipeline, including model training, optimization, visualization, and analysis.
+- All experimentally obtained source data used in the manuscript are available in `source_data/`.
+- Model outputs and derived plots (e.g., optimization trajectories, SHAP results, PCA) are fully reproducible using the code and scripts provided in this repository.
+
+
+**Directory Structure**
+
+```bash
+falcon-lnp-optimization/
+├── run_FALCON.py                       # Top-level script to launch full pipeline
+├── falcon_engine/                      # Core code modules (cross validation, model selection, optimization, formatting, etc.) 
+├── notebooks/                          # Interactive Jupyter notebooks for plotting 
+│   ├── plot_model_performance.ipynb       
+│   ├── plot_optimization_search.ipynb    
+│   ├── plot_PCA.ipynb                     
+│   └── plot_SHAP_analysis.ipynb          
+├── output/                             # Auto-generated suggestions, trained models, plots, logs
+│   ├── demo/                             # Example output of a demo run 
+├── datasets/                           # Input dataset directory
+├── exp_templates/                      # Template formulation sheets and destination for formatted LNP suggestions
+└── environment.yml                     # Conda environment file specifying required dependencies
+```
+
+
+## ⚙️ Environment Setup  
 
 We recommend using **Anaconda** to create a clean, reproducible environment that supports both Python and R.
 
@@ -46,4 +57,46 @@ Clone this repo and run:
 ```bash
 conda env create -f environment.yml
 conda activate falcon-env
-jupyter notebook
+
+```
+
+## 🧪 Running FALCON
+
+The `run_FALCON.py` script executes the full computational pipeline:
+
+- **Part 1 – Surrogate Model Training**:  
+  Trains XGBoost models to predict LNP transfection for each specified cell type.
+
+- **Part 2 – Optimization**:  
+  Applies ML-guided search (e.g., NSGA-II, Bayesian Optimization, Dual Annealing) to identify optimal LNP compositions.
+
+- **Part 3 – (Optional) MANTIS Formatting**:  
+  Formats selected LNPs into a template compatible with robotic pipetting (e.g., MANTIS).
+
+> 💡 Each part of the pipeline can be run independently using flags inside the script (`run_model`, `run_optimization`, `run_mantis_formatter`).
+
+Before running, ensure:
+- Your dataset (`.csv`) is correctly formatted and placed in the `datasets/` folder.
+- Key script parameters are correct set:
+  - `DATASET_NAME`: name of your dataset file
+  - `RUN_NAME`: name of output folder
+  - `input_param_names`: list of features used for model training
+  - `MAX_cell_targets`, `MIN_cell_targets`: target cell types for optimization
+
+### ▶️ To Run
+
+Make sure you are in the project **root directory** (`falcon-lnp-optimization/`), then run:
+
+```bash
+python run_FALCON.py
+```
+
+### 📊 Interactive Analysis (Optional)
+
+Notebooks in the [`notebooks/`](notebooks/) directory are provided as interactive plots to visualize model performance and optimization behavior:
+
+- [SHAP feature importance](notebooks/plot_SHAP_analysis.ipynb)
+- [PCA of formulation space](notebooks/plot_PCA.ipynb)
+- [Pareto front and convex hull](notebooks/plot_optimization_search.ipynb)
+- [Validation curves and learning diagnostics](notebooks/plot_model_performance.ipynb)
+
