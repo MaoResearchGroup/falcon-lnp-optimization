@@ -109,7 +109,7 @@ Make sure you are in the project **root directory** (`falcon-lnp-optimization/`)
 python run_FALCON.py
 ```
 
-### 📊 Interactive Analysis (Optional)
+### 📊 Interactive Analysis 
 
 Notebooks in the [`notebooks/`](notebooks/) directory are provided as interactive plots to visualize model performance and optimization behavior:
 
