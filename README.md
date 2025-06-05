@@ -122,11 +122,18 @@ Notebooks in the [`notebooks/`](notebooks/) directory are provided as interactiv
 
 We're actively expanding the FALCON framework with new capabilities to enhance its capabilities and performance:
 
-- 🧬 **Integration of structural features** (e.g., lipid molecular descriptors)
-- 🧠 **Multi-task and fine-tuned model architectures**
-- 🧪 **Feasibility-aware optimization** (e.g., manufacturability as additional objectives)
-- 📈 **Advanced sampling strategies**  
+- 🧬 Integration of structural features (e.g., lipid molecular descriptors)
+- 🧠 Multi-task and fine-tuned model architectures
+- 🧪 Feasibility-aware optimization (e.g., manufacturability as additional objectives)
+- 📈 Advanced sampling strategies  
   - NSGA-III  
   - I-optimal design  
   - Batch optimization
+
+## Code Contributors
+
+- Enoch Toh  
+- Leonardo Cheng  
+- Charles Shin  
+- Brandon Chang  
 
