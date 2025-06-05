@@ -13,9 +13,9 @@ Repository for the paper "FALCON: A Machine Learning-Driven Platform for Multi-O
 
 - **Exhaustive and rational search.** Surrogate model-guided search algorithms test _hundreds of thousands_ of candidates in silico, outperform brute-force grid search in experiments, and enable interpretability of cell type-selective design principles.
   
-- **Modular and flexible architecture**. Supports different cell types, cargo types, and optimization goals.
+- **Modular and flexible architecture**. Supports different cell types, input parameters, and optimization goals.
 
-- **End-to-end integration.** FALCON processes raw input data and outputs formatted formulation tables compatible with automated liquid handlers (e.g., MANTIS)
+- **End-to-end integration.** FALCON processes input dataset and outputs formatted formulation tables compatible with automated liquid handlers (e.g., MANTIS)
   
 <img src="manuscript_figures/fig1_0530.jpeg" alt="FALCON Pipeline Schematic" width="1000"/>
 <strong>Figure 1. Schematic Overview of Full FALCON Workflow</strong>
@@ -60,6 +60,24 @@ conda activate falcon-env
 
 ```
 
+<details> <summary><strong> First time setting up a coding environment?</strong> (Click to expand)</summary>
+
+1. **Install [Anaconda](https://www.anaconda.com/products/distribution)**  
+   This includes **Python**, **Conda**, and **Jupyter Notebook** — everything you need to run this project.
+
+2. _(Optional but recommended)_ **Install [Visual Studio Code (VS Code)](https://code.visualstudio.com/)**  
+   A lightweight, user-friendly code editor that works well with Conda and Jupyter.
+
+3. Once installed, open:
+   - **Anaconda Prompt** (on Windows), or  
+   - **Terminal** (on macOS/Linux)
+
+4. Then follow the environment setup instructions above to create and activate the environment.
+
+> 💡 You do *not* need to install Python separately — Anaconda handles that for you.
+
+</details> 
+
 ## 🧪 Running FALCON
 
 The `run_FALCON.py` script executes the full computational pipeline:
@@ -99,4 +117,16 @@ Notebooks in the [`notebooks/`](notebooks/) directory are provided as interactiv
 - [PCA of formulation space](notebooks/plot_PCA.ipynb)
 - [Pareto front and convex hull](notebooks/plot_optimization_search.ipynb)
 - [Validation curves and learning diagnostics](notebooks/plot_model_performance.ipynb)
+
+## 🧭 Features Coming Soon
+
+We're actively expanding the FALCON framework with new capabilities to enhance its capabilities and performance:
+
+- 🧬 **Integration of structural features** (e.g., lipid molecular descriptors)
+- 🧠 **Multi-task and fine-tuned model architectures**
+- 🧪 **Feasibility-aware optimization** (e.g., manufacturability as additional objectives)
+- 📈 **Advanced sampling strategies**  
+  - NSGA-III  
+  - I-optimal design  
+  - Batch optimization
 
