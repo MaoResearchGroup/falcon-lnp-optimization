@@ -100,6 +100,8 @@ Before running, ensure:
   - `RUN_NAME`: name of output folder
   - `input_param_names`: list of features used for model training
   - `MAX_cell_targets`, `MIN_cell_targets`: target cell types for optimization
+  - `opt_methods` : search methods to use for optimization
+  - `num_formulations` : number of formulations to generate 
 
 ### ▶️ To Run
 
