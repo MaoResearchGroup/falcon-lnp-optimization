@@ -31,22 +31,26 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['BO', 'DA', 'NSGAII'] # DA, BO, NSGAII
+  opt_methods = ['DA'] # DA, BO, NSGAII
   num_formulations = 12 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['RAMOS']
-  MIN_cell_targets = ['THP1'] # set as empty list if no minimization is desired (not '') 
+  MAX_cell_targets = ['on_target']
+  MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
+
+  #diversity threshold: how diverse do you want your parameters to be?
+  diversity_threshold = 0.05
 
   #model training will be done for each cell type in this list
   #DA and BO will only use first cell type in this list for maximization, NSGAII will use all cell types
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "demo" #Give a name for run folder to save any trained models
-  DATASET_NAME = 'Normalized_RAMOS_THP1_Dual_Objective_4ITER_DSPC_DlinMC3DMA' #Name of the csv file, used to extract training data
+  RUN_NAME = "DOPE_5_component" #Give a name for run folder to save any trained models
+  DATASET_NAME = 'DOPE_5_comp_LNPs_library' #Name of the csv file, used to extract training data
+
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = False # set true unless model is already trained and saved in output folder
@@ -58,10 +62,7 @@ def main():
 
   # Input_Params (features to be used for model training and prediction) 
   # remove for now - 'NP_ratio',
-  input_param_names = [ 'NP_ratio',
-                        'IL+HL',
-                        'HL_IL+HL',
-                        'PEG_PEG+Chol'] 
+  input_param_names = ['IL_NP_ratio','(IL+HL)','HL_(IL+HL)','PEG_(Chol+PEG)','SORT_of_total']
 
   if run_model_training == True:  
     LnRLU_floor = 2.5 #cutoff below which LnRLU values are considered 0
@@ -86,7 +87,7 @@ def main():
   if run_optimization == True:
     optimized_formulations = []
     for opt_method in opt_methods:
-      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME)
+      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold)
 
 
     # Save the optimized formulations to a file

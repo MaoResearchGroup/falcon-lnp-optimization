@@ -17,7 +17,10 @@ import pickle
 import time
 from falcon_engine.utilities import print_slowly
 
-def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME):
+#shap analysis
+import shap
+
+def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold,data_file_path):
     """
     Run optimization for the given cell types and method.
     """
@@ -37,7 +40,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
 
     # load the model and scalers 
     # store models in dictionary 
-    cell_type_list = MAX_cell_targets + MIN_cell_targets
+    cell_type_list = MAX_cell_targets + MIN_cell_targets # we want to make single objective predictions for MAX_cell_targfets
     models = {}
     input_scalars = {}
     output_scalars = {}
@@ -51,11 +54,23 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
     input_param_names = pipeline['Data_preprocessing']['Input_Params']
 
+
     if opt_method == 'DA': 
         print_slowly(f"\n\n--- STARTING DUAL ANNEALING OPTIMIZATION for high {cell_type_list [0]} transfection ---")
         #set search bounds for optimization 
         bounds = [(0, 1.2) for _ in range(len(input_param_names))] # expanded parameter bounds
+
+        #shap analysis run for cell type 0 
+        feature_importance = shap_analysis(RUN_NAME,cell_type_list[0])
+        #historical data import 
+        historical_data = pd.read_csv(data_file_path)
+        historical_data = historical_data[input_param_names]
+
         while(len(optimized_formulations) < num_formulations):
+            history = [] # save top annealing searches
+            history.clear()
+            
+
             result = dual_annealing(
                 func=objective_fcn_DA,
                 bounds=bounds,
@@ -63,19 +78,31 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 initial_temp=20000, 
                 visit = 2.8
             )
-            print(f"Dual Annealing Run Result: {result}")
-            maximal_x, maximal_y = result.x, -result.fun
-            reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[maximal_x[i]]])[0][0] for i in range(len(maximal_x))]
-            reversed_y = output_scalars[cell_type_list[0]].inverse_transform(np.array(maximal_y).reshape(-1, 1))[0][0]
-            if (valid_formulation(reversed_x, input_param_names)): 
-                optimized_formulations.append((reversed_x, reversed_y, opt_method))
-                #print the optimized formulation
-                formatted_params = ", ".join(
-                    f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
-                )
-                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
-            else: 
-                print_slowly(f"Invalid formulation found: {reversed_x}, skipping...")
+
+            #Sort all_evaluations by fun (lowest fun → highest original y).  Take top 20:
+            top_results = sorted(all_evaluations, key=lambda ev: ev[1])[:20]
+            for rank, (scaled_x, neg_fun) in enumerate(top_results, start=1):
+    # un‐scale inputs into reversed_x
+                reversed_x = [
+                    input_scalars[cell_type_list[0]][name]
+                        .inverse_transform([[val]])[0][0]
+                    for name, val in zip(input_param_names, scaled_x)
+                ]
+                # un‐scale output into reversed_y
+                reversed_y = output_scalars[cell_type_list[0]] \
+                                .inverse_transform([[-neg_fun]])[0][0]
+                
+                if (valid_formulation(reversed_x, input_param_names)) and shap_euc_exclusion(reversed_x, feature_importance, diversity_threshold,historical_data): #if item fits the criteria, append, if not simply skip to the next search
+                    optimized_formulations.append((reversed_x, reversed_y, opt_method))
+                    #print the optimized formulation
+                    formatted_params = ", ".join(
+                        f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
+                    )
+                    print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}")
+                    break 
+                else: 
+                    print_slowly(f"Invalid formulation found: {reversed_x}, skipping...")
+                    # continues to search the next formulation in the result matrix
     elif opt_method == 'BO':
         print_slowly(f"\n\n--- STARTING BAYESIAN OPTIMIZATION for high {cell_type_list [0]} transfection ---")
         pbounds = {f'param{i}': (0, 1.2) for i in range(1, len(input_param_names)+1)} #expanded parameter bounds 
@@ -197,6 +224,7 @@ def objective_fcn_DA(x, model, input_param_names=None, output_scaler = None, all
 
   return -y
 
+
 def valid_formulation(formulation, input_param_names):
     """
     Check if the formulation is valid based on predefined criteria.
@@ -211,6 +239,50 @@ def valid_formulation(formulation, input_param_names):
                 return False
     return True
 
+# Shap analysis run - outputs 
+def shap_analysis(RUN_NAME, cell_type):
+    # store models in dictionary 
+    models = {}
+    input_scalars = {}
+    output_scalars = {}
+
+    model_path = f'../output/{RUN_NAME}/{cell_type}/'
+    with open(f'{model_path}Pipeline_dict.pkl', 'rb') as file:
+        pipeline = pickle.load(file)
+    models[cell_type] = pipeline['Model_Selection']['Best_Model']['Model']
+    output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
+    input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
+    train_data = pipeline['Data_preprocessing']['X']
+    input_param_names = pipeline['Data_preprocessing']['Input_Params']
+
+    shap_values = {}
+
+    explainer = shap.Explainer(models[cell_type])
+    X = pd.DataFrame(train_data, columns=input_param_names)
+    shap_values[cell_type] = explainer(X)
+
+    shap_matrix = shap_values[cell_type].values  # shape: (n_samples, n_features)
+
+    # Compute mean absolute SHAP value per feature
+    mean_abs_shap = np.abs(shap_matrix).mean(axis=0)
+
+    # Create a pandas Series for easier viewing, matching input_param_names
+    feature_importance = pd.Series(mean_abs_shap, index=input_param_names)
+
+    return feature_importance
+
+
+def shap_euc_exclusion(formulation, feature_importance, diversity_threshold,historical_data):
+    for historical_formulation in historical_data:
+        distance = 0
+        num_features = len(historical_formulation)
+        for i in range (num_features):
+            distance = distance + feature_importance[i](abs(historical_formulation[i]-formulation[i]))**2
+        if (distance**0.5 >diversity_threshold): 
+            return False
+    return True # it made it all the way, meaning no formulations were within the threshold 
+        
+    
 # NSGAII: modified Problem class to handle multiple XGBoost models
 class FormulationOptimizationProblem(Problem):
     def __init__(self, direction, input_param_names,*xgb_models):
