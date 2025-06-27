@@ -1,4 +1,4 @@
-SORT_LNP,Lipid_Formula_label,Opt_Method,Ionizable_Lipid,Helper_lipid,SORT_lipid,IL_NP_ratio,(IL+HL),HL_(IL+HL),PEG_(Chol+PEG),SORT_of_total,on_target
+SORT_LNP,Formula_label,Opt_Method,Ionizable_Lipid,Helper_lipid,SORT_lipid,IL_NP_ratio,(IL+HL),HL_(IL+HL),PEG_(Chol+PEG),SORT_of_total,on_target
 B1,HB_C1,N/A,SM_102,DOPE,18PG,5,80,50,5,0,7.928970649
 B2,HB_C2,N/A,SM_102,DOPE,18PG,3.5,80,50,5,0,7.540828308
 B3,HB_C3,N/A,SM_102,DOPE,18PG,2,80,50,5,0,7.47292678

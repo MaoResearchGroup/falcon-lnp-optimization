@@ -44,6 +44,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     models = {}
     input_scalars = {}
     output_scalars = {}
+    training_data = {}
 
     for cell_type in cell_type_list:
         model_path = f'output/{RUN_NAME}/{cell_type}/'
@@ -52,6 +53,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         models[cell_type] = pipeline['Model_Selection']['Best_Model']['Model']
         output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
         input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
+        training_data[cell_type] = pipeline['Data_preprocessing']['X']
     input_param_names = pipeline['Data_preprocessing']['Input_Params']
 
 
@@ -188,6 +190,55 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         pareto_solutions = pop[front]
 
         optimized_formulations = greedy_selection(pareto_solutions, num_formulations, input_param_names, models, input_scalars, output_scalars, cell_type_list, opt_method)
+    
+    elif opt_method == 'i-optimal':
+        print_slowly(f"\n\n--- STARTING i-optimal OPTIMIZATION for IMPROVED MODEL PREDICTIONS ---")
+
+        #load trained predictive model asnd training data
+        pred_model = models[cell_type_list[0]]
+        X_train = training_data[cell_type_list[0]]
+
+        # Fit surrogate GP on XGB predictions to get predictive variance
+        gp = fit_gp_on_xgb_output(X_train, pred_model)
+
+        #define parameter bounds
+        pbounds = bounds = [(0, 1.2)] * 5
+        # pbounds = {f'param{i}': (0, 1.2) for i in range(1, len(input_param_names)+1)} #expanded parameter bounds 
+
+        print(pbounds)
+        d = len(pbounds)
+
+        # Candidate pool for selection by latin hypercube sampling of the design space
+        X_candidates = qmc.scale(qmc.LatinHypercube(d).random(1000), [b[0] for b in pbounds], [b[1] for b in pbounds])\
+        
+        # Evaluation grid for computing I-optimal objective
+        X_eval = qmc.scale(qmc.LatinHypercube(d).random(500), [b[0] for b in pbounds], [b[1] for b in pbounds])
+
+        #i-optimal selection
+        selected = []
+        for i in range(num_formulations):
+            min_avg_var = np.inf
+            best_x = None
+
+            for x in X_candidates:
+                X_aug = np.vstack([X_train] + selected + [x])
+                y_aug = pred_model.predict(X_aug)
+
+                gp_temp = GaussianProcessRegressor(kernel=gp.kernel_, alpha=1e-6, normalize_y=True)
+                gp_temp.fit(X_aug, y_aug)
+
+                _, std = gp_temp.predict(X_eval, return_std=True)
+                avg_var = np.mean(std**2)
+
+                if avg_var < min_avg_var:
+                    min_avg_var = avg_var
+                    best_x = x
+
+            selected.append(best_x)
+            X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
+            print(f"Selected {i+1}: Avg surrogate variance = {min_avg_var:.5f}")
+        all_evaluations = selected
+
       
     print_slowly("\n\n--- %s minutes for OPTIMIZED FORMULATION GENERATION ---" % ((time.time() - start_time)/60))
 
@@ -400,3 +451,49 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
     return optimized_formulations
 
 
+#FOR i-optimal samplings
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+from scipy.stats import qmc
+
+def fit_gp_on_xgb_output(X_train, xgb_model):
+    y_pred = xgb_model.predict(X_train)
+    kernel = C(1.0) * RBF(length_scale=0.2)
+    gp = GaussianProcessRegressor(kernel=kernel, alpha=1e-6, normalize_y=True)
+    gp.fit(X_train, y_pred)
+    return gp
+
+def i_optimal_batch_gp_on_xgb(xgb_model, X_train, bounds, batch_size=5):
+    # Fit surrogate GP on XGB predictions
+    gp = fit_gp_on_xgb_output(X_train, xgb_model)
+
+    # Candidate pool for selection
+    X_candidates = qmc.scale(qmc.LatinHypercube(d).random(1000), [b[0] for b in bounds], [b[1] for b in bounds])
+    
+    # Evaluation grid for computing I-optimal objective
+    X_eval = qmc.scale(qmc.LatinHypercube(d).random(500), [b[0] for b in bounds], [b[1] for b in bounds])
+
+    selected = []
+    for i in range(batch_size):
+        min_avg_var = np.inf
+        best_x = None
+
+        for x in X_candidates:
+            X_aug = np.vstack([X_train] + selected + [x])
+            y_aug = xgb_model.predict(X_aug)
+
+            gp_temp = GaussianProcessRegressor(kernel=gp.kernel_, alpha=1e-6, normalize_y=True)
+            gp_temp.fit(X_aug, y_aug)
+
+            _, std = gp_temp.predict(X_eval, return_std=True)
+            avg_var = np.mean(std**2)
+
+            if avg_var < min_avg_var:
+                min_avg_var = avg_var
+                best_x = x
+
+        selected.append(best_x)
+        X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
+        print(f"Selected {i+1}: Avg surrogate variance = {min_avg_var:.5f}")
+
+    return np.array(selected)

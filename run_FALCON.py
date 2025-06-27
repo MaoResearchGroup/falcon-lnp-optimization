@@ -31,7 +31,7 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['DA'] # DA, BO, NSGAII
+  opt_methods = ['i-optimal'] # DA, BO, NSGAII, i-optimal
   num_formulations = 12 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
@@ -54,7 +54,7 @@ def main():
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = False # set true unless model is already trained and saved in output folder
-  run_optimization = False # set true unless de novo formulation generation is not desired 
+  run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
@@ -76,7 +76,7 @@ def main():
                                       model_list=['XGB'], #List of models to be trained, currently only XGB is supported for surrogate modeling
                                       param_type = 'percent',
                                       data_file_path=data_file_path,
-                                      prefix='LnRLU_',
+                                      prefix='',
                                       RLU_floor=LnRLU_floor,
                                       N_CV=5)
       pipeline_dict, _, _, _= extract_training_data(pipeline_dict) 
@@ -87,7 +87,7 @@ def main():
   if run_optimization == True:
     optimized_formulations = []
     for opt_method in opt_methods:
-      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold)
+      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold, data_file_path)
 
 
     # Save the optimized formulations to a file
