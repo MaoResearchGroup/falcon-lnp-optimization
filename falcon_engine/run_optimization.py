@@ -216,6 +216,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
 
         #i-optimal selection
         selected = []
+        selected_xy = []
         for i in range(num_formulations):
             min_avg_var = np.inf
             best_x = None
@@ -233,12 +234,18 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 if avg_var < min_avg_var:
                     min_avg_var = avg_var
                     best_x = x
+                    best_y = pred_model.predict([x])[0]  # scalar
+                    best_xy = np.append(x, best_y).astype(float) 
 
             selected.append(best_x)
+            selected_xy.append(best_xy)
+
+            #removed selected candidate to reduce redundancy
             X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
             print(f"Selected {i+1}: Avg surrogate variance = {min_avg_var:.5f}")
-        all_evaluations = selected
 
+        labeled_selected = pd.DataFrame(selected_xy, columns= input_param_names + [f'Predicted_LnRLU'])
+        all_evaluations = labeled_selected
       
     print_slowly("\n\n--- %s minutes for OPTIMIZED FORMULATION GENERATION ---" % ((time.time() - start_time)/60))
 
@@ -323,6 +330,7 @@ def shap_analysis(RUN_NAME, cell_type):
     return feature_importance
 
 
+#SHAP importance weighted euclidian distance diversity thresholding
 def shap_euc_exclusion(formulation, feature_importance, diversity_threshold,historical_data):
     for historical_formulation in historical_data:
         distance = 0
@@ -456,44 +464,10 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from scipy.stats import qmc
 
+#create a gaussian process model trained on the xgb models for LNP predictions
 def fit_gp_on_xgb_output(X_train, xgb_model):
     y_pred = xgb_model.predict(X_train)
     kernel = C(1.0) * RBF(length_scale=0.2)
     gp = GaussianProcessRegressor(kernel=kernel, alpha=1e-6, normalize_y=True)
     gp.fit(X_train, y_pred)
     return gp
-
-def i_optimal_batch_gp_on_xgb(xgb_model, X_train, bounds, batch_size=5):
-    # Fit surrogate GP on XGB predictions
-    gp = fit_gp_on_xgb_output(X_train, xgb_model)
-
-    # Candidate pool for selection
-    X_candidates = qmc.scale(qmc.LatinHypercube(d).random(1000), [b[0] for b in bounds], [b[1] for b in bounds])
-    
-    # Evaluation grid for computing I-optimal objective
-    X_eval = qmc.scale(qmc.LatinHypercube(d).random(500), [b[0] for b in bounds], [b[1] for b in bounds])
-
-    selected = []
-    for i in range(batch_size):
-        min_avg_var = np.inf
-        best_x = None
-
-        for x in X_candidates:
-            X_aug = np.vstack([X_train] + selected + [x])
-            y_aug = xgb_model.predict(X_aug)
-
-            gp_temp = GaussianProcessRegressor(kernel=gp.kernel_, alpha=1e-6, normalize_y=True)
-            gp_temp.fit(X_aug, y_aug)
-
-            _, std = gp_temp.predict(X_eval, return_std=True)
-            avg_var = np.mean(std**2)
-
-            if avg_var < min_avg_var:
-                min_avg_var = avg_var
-                best_x = x
-
-        selected.append(best_x)
-        X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
-        print(f"Selected {i+1}: Avg surrogate variance = {min_avg_var:.5f}")
-
-    return np.array(selected)
