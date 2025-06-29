@@ -45,34 +45,35 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     input_scalars = {}
     output_scalars = {}
     training_data = {}
+    pipeline = None
 
     for cell_type in cell_type_list:
         model_path = f'output/{RUN_NAME}/{cell_type}/'
         with open(f'{model_path}Pipeline_dict.pkl', 'rb') as file:
             pipeline = pickle.load(file)
+            print("sucess!!!!!!****************")
         models[cell_type] = pipeline['Model_Selection']['Best_Model']['Model']
         output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
         input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
         training_data[cell_type] = pipeline['Data_preprocessing']['X']
     input_param_names = pipeline['Data_preprocessing']['Input_Params']
 
+    #shap analysis run for cell type 0 
+    feature_importance = shap_analysis(RUN_NAME,cell_type_list[0],pipeline)
+    
+    #historical data import 
+    historical_data = pd.read_csv(data_file_path)
+    historical_data = historical_data[input_param_names]
 
     if opt_method == 'DA': 
         print_slowly(f"\n\n--- STARTING DUAL ANNEALING OPTIMIZATION for high {cell_type_list [0]} transfection ---")
         #set search bounds for optimization 
         bounds = [(0, 1.2) for _ in range(len(input_param_names))] # expanded parameter bounds
 
-        #shap analysis run for cell type 0 
-        feature_importance = shap_analysis(RUN_NAME,cell_type_list[0])
-        #historical data import 
-        historical_data = pd.read_csv(data_file_path)
-        historical_data = historical_data[input_param_names]
-
         while(len(optimized_formulations) < num_formulations):
             history = [] # save top annealing searches
             history.clear()
             
-
             result = dual_annealing(
                 func=objective_fcn_DA,
                 bounds=bounds,
@@ -217,6 +218,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         #i-optimal selection
         selected = []
         selected_xy = []
+
         for i in range(num_formulations):
             min_avg_var = np.inf
             best_x = None
@@ -236,9 +238,9 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                     best_x = x
                     best_y = pred_model.predict([x])[0]  # scalar
                     best_xy = np.append(x, best_y).astype(float) 
-
-            selected.append(best_x)
-            selected_xy.append(best_xy)
+            if (valid_formulation(best_x, input_param_names)) and shap_euc_exclusion(best_x, feature_importance, diversity_threshold,historical_data): #if item fits the criteria, append, if not simply skip to the next search
+                selected.append(best_x)
+                selected_xy.append(best_xy)
 
             #removed selected candidate to reduce redundancy
             X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
@@ -298,15 +300,15 @@ def valid_formulation(formulation, input_param_names):
     return True
 
 # Shap analysis run - outputs 
-def shap_analysis(RUN_NAME, cell_type):
+def shap_analysis(RUN_NAME, cell_type,pipeline):
     # store models in dictionary 
     models = {}
     input_scalars = {}
     output_scalars = {}
 
-    model_path = f'../output/{RUN_NAME}/{cell_type}/'
-    with open(f'{model_path}Pipeline_dict.pkl', 'rb') as file:
-        pipeline = pickle.load(file)
+    # model_path = f'../output/{RUN_NAME}/{cell_type}/'
+    # with open(f'{model_path}Pipeline_dict.pkl', 'rb') as file:
+    #     pipeline = pickle.load(file)
     models[cell_type] = pipeline['Model_Selection']['Best_Model']['Model']
     output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
     input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
@@ -331,16 +333,27 @@ def shap_analysis(RUN_NAME, cell_type):
 
 
 #SHAP importance weighted euclidian distance diversity thresholding
-def shap_euc_exclusion(formulation, feature_importance, diversity_threshold,historical_data):
-    for historical_formulation in historical_data:
-        distance = 0
-        num_features = len(historical_formulation)
-        for i in range (num_features):
-            distance = distance + feature_importance[i](abs(historical_formulation[i]-formulation[i]))**2
-        if (distance**0.5 >diversity_threshold): 
+def shap_euc_exclusion(formulation, feature_importance, diversity_threshold, historical_data):
+    # ensure formulation is numeric
+    form = np.array(formulation, dtype=float)
+
+    for hist in historical_data:
+        # cast historical to floats as well
+        hist_arr = np.array(hist[1:], dtype=float)
+
+        # absolute differences
+        diffs = np.abs(hist_arr - form)
+
+        # apply each importance function, square, and sum
+        weighted_sq = [fi(d)**2 for fi, d in zip(feature_importance, diffs)]
+        distance = np.sqrt(sum(weighted_sq))
+
+        if distance > diversity_threshold:
+            # it’s too far from at least one historical point
             return False
-    return True # it made it all the way, meaning no formulations were within the threshold 
-        
+
+    # no historical point was within the threshold
+    return True
     
 # NSGAII: modified Problem class to handle multiple XGBoost models
 class FormulationOptimizationProblem(Problem):
