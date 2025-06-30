@@ -7,6 +7,9 @@ import pandas as pd
 import pickle 
 from falcon_engine.utilities import print_slowly
 from falcon_engine.run_mantis_formatter import run_mantis_formatter_pipeline
+import warnings
+
+warnings.filterwarnings("ignore")
 
 """
 run_FALCON script
@@ -32,7 +35,7 @@ def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
   opt_methods = ['i-optimal'] # DA, BO, NSGAII, i-optimal
-  num_formulations = 12 #Default = 12 
+  num_formulations = 2 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
@@ -53,7 +56,7 @@ def main():
 
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True # set true unless model is already trained and saved in output folder
+  run_model_training = False # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 

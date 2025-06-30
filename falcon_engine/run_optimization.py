@@ -64,6 +64,9 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     #historical data import 
     historical_data = pd.read_csv(data_file_path)
     historical_data = historical_data[input_param_names]
+    # print(historical_data.iloc[0])
+    import sys
+    # sys.exit()
 
     if opt_method == 'DA': 
         print_slowly(f"\n\n--- STARTING DUAL ANNEALING OPTIMIZATION for high {cell_type_list [0]} transfection ---")
@@ -203,10 +206,9 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         gp = fit_gp_on_xgb_output(X_train, pred_model)
 
         #define parameter bounds
-        pbounds = bounds = [(0, 1.2)] * 5
+        pbounds = bounds = [(-0.1, 1.2)] * 5
         # pbounds = {f'param{i}': (0, 1.2) for i in range(1, len(input_param_names)+1)} #expanded parameter bounds 
 
-        print(pbounds)
         d = len(pbounds)
 
         # Candidate pool for selection by latin hypercube sampling of the design space
@@ -218,11 +220,14 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         #i-optimal selection
         selected = []
         selected_xy = []
-
-        for i in range(num_formulations):
+        count = 0 
+        while (len(selected)<(num_formulations)):
             min_avg_var = np.inf
             best_x = None
-
+            count+=1
+            if count>=100:
+                print(f'Max (100) number of searches were conducted, only {len(selected)} were found')
+                break
             for x in X_candidates:
                 X_aug = np.vstack([X_train] + selected + [x])
                 y_aug = pred_model.predict(X_aug)
@@ -238,13 +243,19 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                     best_x = x
                     best_y = pred_model.predict([x])[0]  # scalar
                     best_xy = np.append(x, best_y).astype(float) 
-            if (valid_formulation(best_x, input_param_names)) and shap_euc_exclusion(best_x, feature_importance, diversity_threshold,historical_data): #if item fits the criteria, append, if not simply skip to the next search
-                selected.append(best_x)
-                selected_xy.append(best_xy)
+            reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[best_x[i]]])[0][0] for i in range(len(best_x))]
+
+                    
+                    
+            if (valid_formulation(reversed_x, input_param_names)):
+                if (shap_euc_exclusion(best_x, feature_importance, diversity_threshold,historical_data)): #if item fits the criteria, append, if not simply skip to the next search
+                    selected.append(best_x)
+                    selected_xy.append(best_xy)
+                    print(f"Selected {len(selected)}: Avg surrogate variance = {min_avg_var:.5f}")
+
 
             #removed selected candidate to reduce redundancy
             X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
-            print(f"Selected {i+1}: Avg surrogate variance = {min_avg_var:.5f}")
 
         labeled_selected = pd.DataFrame(selected_xy, columns= input_param_names + [f'Predicted_LnRLU'])
         all_evaluations = labeled_selected
@@ -334,21 +345,24 @@ def shap_analysis(RUN_NAME, cell_type,pipeline):
 
 #SHAP importance weighted euclidian distance diversity thresholding
 def shap_euc_exclusion(formulation, feature_importance, diversity_threshold, historical_data):
+    #feature importance normalization
+    max_feature_importance = feature_importance.max()
+    feat_norm = feature_importance/max_feature_importance
+        
     # ensure formulation is numeric
     form = np.array(formulation, dtype=float)
 
-    for hist in historical_data:
-        # cast historical to floats as well
-        hist_arr = np.array(hist[1:], dtype=float)
+    # hist_matrix = historical_data[:, 1:].astype(float)
+    for hist_arr in historical_data.values:
+        # hist_arr is now a 1D array of ints
+        
+        hist_arr_new = np.array(feat_norm, dtype = float)
+        diffs       = np.abs(hist_arr_new - form)
+        weighted_sq = [fi * (d**2) 
+                for fi, d in zip(feature_importance, diffs)]
+        distance    = np.sqrt(sum(weighted_sq))
 
-        # absolute differences
-        diffs = np.abs(hist_arr - form)
-
-        # apply each importance function, square, and sum
-        weighted_sq = [fi(d)**2 for fi, d in zip(feature_importance, diffs)]
-        distance = np.sqrt(sum(weighted_sq))
-
-        if distance > diversity_threshold:
+        if distance < diversity_threshold:
             # it’s too far from at least one historical point
             return False
 
