@@ -220,6 +220,8 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         #i-optimal selection
         selected = []
         selected_xy = []
+        selected_reversed = []
+
         count = 0 
         while (len(selected)<(num_formulations)):
             min_avg_var = np.inf
@@ -251,11 +253,15 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 if (shap_euc_exclusion(best_x, feature_importance, diversity_threshold,historical_data)): #if item fits the criteria, append, if not simply skip to the next search
                     selected.append(best_x)
                     selected_xy.append(best_xy)
+                    selected_reversed.append(reversed_x)
                     print(f"Selected {len(selected)}: Avg surrogate variance = {min_avg_var:.5f}")
 
 
             #removed selected candidate to reduce redundancy
             X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
+
+        
+        labeled_reversed = pd.DataFrame(selected_reversed, columns = input_param_names)
 
         labeled_selected = pd.DataFrame(selected_xy, columns= input_param_names + [f'Predicted_LnRLU'])
         all_evaluations = labeled_selected
@@ -264,8 +270,10 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
 
     print_slowly("\n\n--- EXPORTING ALL EVALUATIONS to csv ---")
     # Save all evaluations to a CSV file
+    
     evaluations_df = pd.DataFrame(all_evaluations)
     evaluations_df.to_csv(f'output/{RUN_NAME}/{opt_method}_all_evaluations.csv', index=False)
+    labeled_reversed.to_csv(f'output/{RUN_NAME}/{opt_method}_all_evaluations_reversed.csv', index=False)
     print_slowly(f"All evaluations saved to output/{RUN_NAME}/{opt_method}_all_evaluations.csv")
 
     return optimized_formulations
@@ -302,11 +310,11 @@ def valid_formulation(formulation, input_param_names):
     """
     # All percentage parameters should be between 0 and 100 
     for i in range(len(formulation)):
-        if input_param_names[i] in ['PEG_PEG+Chol', 'IL+HL', 'HL_IL+HL']:
+        if input_param_names[i] in ['PEG_(Chol+PEG)', '(IL+HL)', 'HL_(IL+HL)','SORT_of_total']:
             if formulation[i] < 0 or formulation[i] > 100:
                 return False 
-        if input_param_names[i] == 'NP_ratio':
-            if formulation[i] < 0 or formulation[i] > 30: # cap at 25 for NP_ratio
+        if input_param_names[i] == 'IL_NP_ratio':
+            if formulation[i] < 2 or formulation[i] > 12: # cap at 25 for NP_ratio
                 return False
     return True
 
