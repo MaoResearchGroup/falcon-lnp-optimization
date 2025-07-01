@@ -34,7 +34,7 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['BO'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['DA'] # DA, BO, NSGAII, i-optimal
   num_formulations = 2 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
@@ -43,8 +43,8 @@ def main():
   MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
-  #diversity threshold: how diverse do you want your parameters to be?
-  diversity_threshold = 0.05
+  #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
+  diversity_threshold = 1
 
   #model training will be done for each cell type in this list
   #DA and BO will only use first cell type in this list for maximization, NSGAII will use all cell types

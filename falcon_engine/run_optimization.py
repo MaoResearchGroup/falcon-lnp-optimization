@@ -85,28 +85,37 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 initial_temp=20000, 
                 visit = 2.8
             )
+            maximal_x, maximal_y = result.x, -result.fun
 
-            #Sort all_evaluations by fun (lowest fun → highest original y).  Take top 20:
-            top_results = sorted(all_evaluations, key=lambda ev: ev[1])[:20]
-            for rank, (scaled_x, neg_fun) in enumerate(top_results, start=1):
-            # un‐scale inputs into reversed_x
-                reversed_x = [
-                    input_scalars[cell_type_list[0]][name]
-                        .inverse_transform([[val]])[0][0]
-                    for name, val in zip(input_param_names, scaled_x)
-                ]
-                # un‐scale output into reversed_y
-                reversed_y = output_scalars[cell_type_list[0]] \
-                                .inverse_transform([[-neg_fun]])[0][0]
-                
-                if (valid_formulation(reversed_x, input_param_names)) and shap_euc_exclusion(reversed_x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], test_selected): #if item fits the criteria, append, if not simply skip to the next search
+            #convert parameters to physical values
+            reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[maximal_x[i]]])[0][0] for i in range(len(maximal_x))]
+            reversed_y = output_scalars[cell_type_list[0]].inverse_transform(np.array(maximal_y).reshape(-1, 1))[0][0]
+
+
+
+
+            #Check if formulations are physically possible
+            if (valid_formulation(reversed_x, input_param_names)): #Check if formulations are physically possible
+
+                #Check if formulations are diverse compare to historical and other selected
+                if (shap_euc_exclusion(maximal_x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], test_selected)):
+                    test_selected.loc[len(test_selected)] = maximal_x
+                    selected.append(maximal_x)
+                    selected_xy.append(np.append(maximal_x, reversed_y).astype(float) )
+                    selected_reversed.append(reversed_x)
+
+
                     optimized_formulations.append((reversed_x, reversed_y, opt_method))
                     #print the optimized formulation
                     formatted_params = ", ".join(
                         f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
                     )
-                    print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}")
-                    break 
+                    print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
+        #FOR EXPORT
+        labeled_reversed = pd.DataFrame(selected_reversed, columns = input_param_names)
+        labeled_selected = pd.DataFrame(selected_xy, columns= input_param_names + [f'Predicted_LnRLU'])
+        all_evaluations = labeled_selected
+
 
     elif opt_method == 'BO':
         print_slowly(f"\n\n--- STARTING BAYESIAN OPTIMIZATION for high {cell_type_list [0]} transfection ---")
@@ -135,8 +144,8 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
             reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[maximal_x[i]]])[0][0] for i in range(len(maximal_x))]
             reversed_y = output_scalars[cell_type_list[0]].inverse_transform(np.array(maximal_y).reshape(-1, 1))[0][0]
 
-            test_selected = pd.DataFrame(columns = input_param_names)
-            if (valid_formulation(reversed_x, input_param_names)): #Check if formulations are physically possible
+            #Check if formulations are physically possible
+            if (valid_formulation(reversed_x, input_param_names)): 
                 if (shap_euc_exclusion(maximal_x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], test_selected)):
                     test_selected.loc[len(test_selected)] = maximal_x
                     selected.append(maximal_x)
@@ -345,7 +354,7 @@ def shap_euc_exclusion(formulation, feature_importance, diversity_threshold, his
 
         if distance < diversity_threshold:
             # it’s too far from at least one historical point
-            print("LNP rejected, not diverse enough")
+            print(f"LNP rejected, diversity of {distance} is not higher than our threshold {diversity_threshold}")
             return False
 
     # no historical point was within the threshold
