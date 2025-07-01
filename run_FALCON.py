@@ -34,7 +34,7 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['DA'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['NSGAII'] # DA, BO, NSGAII, i-optimal
   num_formulations = 2 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######

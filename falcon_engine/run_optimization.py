@@ -103,14 +103,14 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                     selected.append(maximal_x)
                     selected_xy.append(np.append(maximal_x, reversed_y).astype(float) )
                     selected_reversed.append(reversed_x)
-
-
                     optimized_formulations.append((reversed_x, reversed_y, opt_method))
                     #print the optimized formulation
                     formatted_params = ", ".join(
                         f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
                     )
                     print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
+        
+        
         #FOR EXPORT
         labeled_reversed = pd.DataFrame(selected_reversed, columns = input_param_names)
         labeled_selected = pd.DataFrame(selected_xy, columns= input_param_names + [f'Predicted_LnRLU'])
@@ -173,7 +173,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         mutation = AdaptiveMutation(base_prob=0.1, eta=20)
         direction = [-1] * len(MAX_cell_targets) + [1] * len(MIN_cell_targets)
         ordered_models = [models[cell] for cell in cell_type_list]
-        problem = FormulationOptimizationProblem(direction, input_param_names, *ordered_models, pbounds)
+        problem = FormulationOptimizationProblem(direction, input_param_names, *ordered_models, norm_suggestion_bounds)
         algorithm = NSGA2(pop_size=500, sampling=sampling, crossover=crossover, mutation=mutation, eliminate_duplicates=True)
         # Run the optimization
         res = minimize(
@@ -220,6 +220,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         pareto_solutions = pop[front]
 
         optimized_formulations = greedy_selection(pareto_solutions, num_formulations, input_param_names, models, input_scalars, output_scalars, cell_type_list, opt_method)
+
     
     elif opt_method == 'i-optimal':
         print_slowly(f"\n\n--- STARTING i-optimal OPTIMIZATION for IMPROVED MODEL PREDICTIONS ---")
@@ -442,11 +443,18 @@ class AdaptiveCrossover(Crossover):
             prob = self.base_prob
         return SimulatedBinaryCrossover(prob=prob, eta=self.eta)._do(problem, X, **kwargs)
     
-# Diversity-weighted greedy selection of points
-def greedy_selection(points, n_select, input_param_names, models, input_scalars, output_scalars, cell_type_list, opt_method):
+# Diversity-weighted greedy selection of points and criteria based diversity selection
+def greedy_selection(points, n_select, input_param_names, models, input_scalars, output_scalars, cell_type_list, opt_method, feature_importance, training_data, diversity_threshold):
+    
     selected_normalized = []        # For diversity calculation
     optimized_formulations = []     # Final output: (reversed_x, y_dict)
     remaining = points.tolist()
+
+    #Suggested LNP collection
+    selected = []
+    selected_xy = []
+    selected_reversed = []
+    test_selected = pd.DataFrame(columns = input_param_names)
 
     def predict_all_outputs(x):
         """Predict outputs from all models and inverse-transform them."""
@@ -466,7 +474,7 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
             for i, name in enumerate(input_param_names)
         ]
 
-    # Step 1: Pick the first valid point
+    # Step 1: Pick the first valid point and diverse point
     for x in remaining:
         reversed_x = inverse_transform_input(x)
         if valid_formulation(reversed_x, input_param_names):
@@ -482,10 +490,30 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
                 + ', '.join(f"Pred. LnRLU_{k}: {v:.3f}" for k, v in y_dict.items())
             )
             break
+
+        #Check if formulations are physically possible
+        if (valid_formulation(reversed_x, input_param_names)): #Check if formulations are physically possible
+
+            #Check if formulations are diverse compare to historical and other selected
+            if (shap_euc_exclusion(x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], optimized_formulations)):
+                test_selected.loc[len(optimized_formulations)] = x
+                selected.append(x)
+                selected_xy.append(np.append(x, reversed_y).astype(float) )
+                selected_reversed.append(reversed_x)
+                optimized_formulations.append((reversed_x, reversed_y, opt_method))
+                #print the optimized formulation
+                formatted_params = ", ".join(
+                    f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
+                )
+                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
+
+
+
+
     else:
         raise RuntimeError("No valid initial formulation found.")
 
-    # Step 2: Greedy selection of remaining diverse points
+    # Step 2: Greedy selection of remaining valide and diverse points
     while len(optimized_formulations) < n_select:
         next_point = max(
             remaining,
@@ -507,7 +535,6 @@ def greedy_selection(points, n_select, input_param_names, models, input_scalars,
             print_slowly(f"Invalid formulation found: {next_point}, skipping...")
 
     return optimized_formulations
-
 
 #FOR i-optimal samplings
 from sklearn.gaussian_process import GaussianProcessRegressor
