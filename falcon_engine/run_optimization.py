@@ -20,7 +20,7 @@ from falcon_engine.utilities import print_slowly
 #shap analysis
 import shap
 
-def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold,data_file_path):
+def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold, norm_suggestion_bounds = (-0.1, 1.2)):
     """
     Run optimization for the given cell types and method.
     """
@@ -51,7 +51,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         model_path = f'output/{RUN_NAME}/{cell_type}/'
         with open(f'{model_path}Pipeline_dict.pkl', 'rb') as file:
             pipeline = pickle.load(file)
-            print("sucess!!!!!!****************")
+
         models[cell_type] = pipeline['Model_Selection']['Best_Model']['Model']
         output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
         input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
@@ -61,18 +61,19 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     #shap analysis run for cell type 0 
     feature_importance = shap_analysis(RUN_NAME,cell_type_list[0],pipeline)
     
-    #historical data import 
-    historical_data = pd.read_csv(data_file_path)
-    historical_data = historical_data[input_param_names]
-    # print(historical_data.iloc[0])
-    import sys
-    # sys.exit()
+
+    #Suggested LNP collection
+    selected = []
+    selected_xy = []
+    selected_reversed = []
+    test_selected = pd.DataFrame(columns = input_param_names)
 
     if opt_method == 'DA': 
         print_slowly(f"\n\n--- STARTING DUAL ANNEALING OPTIMIZATION for high {cell_type_list [0]} transfection ---")
         #set search bounds for optimization 
-        bounds = [(0, 1.2) for _ in range(len(input_param_names))] # expanded parameter bounds
+        bounds = [norm_suggestion_bounds for _ in range(len(input_param_names))] # expanded parameter bounds
 
+        #Search loop
         while(len(optimized_formulations) < num_formulations):
             history = [] # save top annealing searches
             history.clear()
@@ -88,7 +89,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
             #Sort all_evaluations by fun (lowest fun → highest original y).  Take top 20:
             top_results = sorted(all_evaluations, key=lambda ev: ev[1])[:20]
             for rank, (scaled_x, neg_fun) in enumerate(top_results, start=1):
-    # un‐scale inputs into reversed_x
+            # un‐scale inputs into reversed_x
                 reversed_x = [
                     input_scalars[cell_type_list[0]][name]
                         .inverse_transform([[val]])[0][0]
@@ -98,7 +99,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 reversed_y = output_scalars[cell_type_list[0]] \
                                 .inverse_transform([[-neg_fun]])[0][0]
                 
-                if (valid_formulation(reversed_x, input_param_names)) and shap_euc_exclusion(reversed_x, feature_importance, diversity_threshold,historical_data): #if item fits the criteria, append, if not simply skip to the next search
+                if (valid_formulation(reversed_x, input_param_names)) and shap_euc_exclusion(reversed_x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], test_selected): #if item fits the criteria, append, if not simply skip to the next search
                     optimized_formulations.append((reversed_x, reversed_y, opt_method))
                     #print the optimized formulation
                     formatted_params = ", ".join(
@@ -106,12 +107,10 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                     )
                     print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}")
                     break 
-                else: 
-                    print_slowly(f"Invalid formulation found: {reversed_x}, skipping...")
-                    # continues to search the next formulation in the result matrix
+
     elif opt_method == 'BO':
         print_slowly(f"\n\n--- STARTING BAYESIAN OPTIMIZATION for high {cell_type_list [0]} transfection ---")
-        pbounds = {f'param{i}': (0, 1.2) for i in range(1, len(input_param_names)+1)} #expanded parameter bounds 
+        pbounds = {f'param{i}': norm_suggestion_bounds for i in range(1, len(input_param_names)+1)} #expanded parameter bounds 
         while(len(optimized_formulations) < num_formulations): 
             optimizer = BayesianOptimization(
                 f=lambda **params: objective_fcn_BO(
@@ -128,18 +127,36 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                 init_points=10,  
                 n_iter=50
             )
+
+            #Get best suggested LNPs
             maximal_x, maximal_y = np.array(list(optimizer.max['params'].values())), [optimizer.max['target']] 
+            
+            #convert parameters to physical values
             reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[maximal_x[i]]])[0][0] for i in range(len(maximal_x))]
             reversed_y = output_scalars[cell_type_list[0]].inverse_transform(np.array(maximal_y).reshape(-1, 1))[0][0]
-            if (valid_formulation(reversed_x, input_param_names)): 
-                optimized_formulations.append((reversed_x, reversed_y, opt_method))
-                #print the optimized formulation
-                formatted_params = ", ".join(
-                    f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
-                )
-                print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
-            else: 
-                print_slowly(f"Invalid formulation found: {reversed_x}, skipping...")
+
+            test_selected = pd.DataFrame(columns = input_param_names)
+            if (valid_formulation(reversed_x, input_param_names)): #Check if formulations are physically possible
+                if (shap_euc_exclusion(maximal_x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], test_selected)):
+                    test_selected.loc[len(test_selected)] = maximal_x
+                    selected.append(maximal_x)
+                    selected_xy.append(np.append(maximal_x, reversed_y).astype(float) )
+                    selected_reversed.append(reversed_x)
+
+
+                    optimized_formulations.append((reversed_x, reversed_y, opt_method))
+                    #print the optimized formulation
+                    formatted_params = ", ".join(
+                        f"{name}: {value:.3f}" for name, value in zip(input_param_names, reversed_x)
+                    )
+                    print_slowly(f"Optimized Formulation {len(optimized_formulations)}: {formatted_params}, Predicted LnRLU: {reversed_y}") 
+        
+        #FOR EXPORT
+        labeled_reversed = pd.DataFrame(selected_reversed, columns = input_param_names)
+        labeled_selected = pd.DataFrame(selected_xy, columns= input_param_names + [f'Predicted_LnRLU'])
+        all_evaluations = labeled_selected
+        
+
     elif opt_method == 'NSGAII':
         print_slowly(f"\n\n--- STARTING NSGA-II OPTIMIZATION for high {MAX_cell_targets} and low {MIN_cell_targets} transfection ---")
         sampling = LHS()  # Latin Hypercube Sampling
@@ -147,7 +164,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         mutation = AdaptiveMutation(base_prob=0.1, eta=20)
         direction = [-1] * len(MAX_cell_targets) + [1] * len(MIN_cell_targets)
         ordered_models = [models[cell] for cell in cell_type_list]
-        problem = FormulationOptimizationProblem(direction, input_param_names, *ordered_models)
+        problem = FormulationOptimizationProblem(direction, input_param_names, *ordered_models, pbounds)
         algorithm = NSGA2(pop_size=500, sampling=sampling, crossover=crossover, mutation=mutation, eliminate_duplicates=True)
         # Run the optimization
         res = minimize(
@@ -203,24 +220,16 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         X_train = training_data[cell_type_list[0]]
 
         # Fit surrogate GP on XGB predictions to get predictive variance
-        gp = fit_gp_on_xgb_output(X_train, pred_model)
+        gp_on_xgb = fit_gp_on_xgb_output(X_train, pred_model)
 
-        #define parameter bounds
-        pbounds = bounds = [(-0.1, 1.2)] * 5
-        # pbounds = {f'param{i}': (0, 1.2) for i in range(1, len(input_param_names)+1)} #expanded parameter bounds 
-
-        d = len(pbounds)
+        #define parameter bounds (extend by 10% negative direction and 20% positive direction)
+        pbounds = bounds = [(-0.1, 1.2)] * len(input_param_names)
 
         # Candidate pool for selection by latin hypercube sampling of the design space
-        X_candidates = qmc.scale(qmc.LatinHypercube(d).random(1000), [b[0] for b in pbounds], [b[1] for b in pbounds])\
+        X_candidates = qmc.scale(qmc.LatinHypercube(len(pbounds)).random(1000), [b[0] for b in pbounds], [b[1] for b in pbounds])\
         
         # Evaluation grid for computing I-optimal objective
-        X_eval = qmc.scale(qmc.LatinHypercube(d).random(500), [b[0] for b in pbounds], [b[1] for b in pbounds])
-
-        #i-optimal selection
-        selected = []
-        selected_xy = []
-        selected_reversed = []
+        X_eval = qmc.scale(qmc.LatinHypercube(len(pbounds)).random(500), [b[0] for b in pbounds], [b[1] for b in pbounds])
 
         count = 0 
         while (len(selected)<(num_formulations)):
@@ -230,36 +239,26 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
             if count>=100:
                 print(f'Max (100) number of searches were conducted, only {len(selected)} were found')
                 break
-            for x in X_candidates:
-                X_aug = np.vstack([X_train] + selected + [x])
-                y_aug = pred_model.predict(X_aug)
 
-                gp_temp = GaussianProcessRegressor(kernel=gp.kernel_, alpha=1e-6, normalize_y=True)
-                gp_temp.fit(X_aug, y_aug)
+            #Test and find best candidate
+            suggested_x, min_avg_var = i_optimal_search(X_train, X_candidates, X_eval, pred_model, gp_on_xgb, selected)
 
-                _, std = gp_temp.predict(X_eval, return_std=True)
-                avg_var = np.mean(std**2)
-
-                if avg_var < min_avg_var:
-                    min_avg_var = avg_var
-                    best_x = x
-                    best_y = pred_model.predict([x])[0]  # scalar
-                    best_xy = np.append(x, best_y).astype(float) 
-            reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[best_x[i]]])[0][0] for i in range(len(best_x))]
-
+            #removed selected candidate to reduce suggestion redundancy
+            X_candidates = np.delete(X_candidates, np.where((X_candidates == suggested_x).all(axis=1))[0], axis=0)
+            
                     
-                    
-            if (valid_formulation(reversed_x, input_param_names)):
-                if (shap_euc_exclusion(best_x, feature_importance, diversity_threshold,historical_data)): #if item fits the criteria, append, if not simply skip to the next search
-                    selected.append(best_x)
-                    selected_xy.append(best_xy)
+            #Validate suggestion quality
+            reversed_x = [input_scalars[cell_type_list[0]][input_param_names[i]].inverse_transform([[suggested_x[i]]])[0][0]
+                            for i in range(len(suggested_x))]
+            if (valid_formulation(reversed_x, input_param_names)): #Check if formulations are physically possible
+                if (shap_euc_exclusion(suggested_x, feature_importance, diversity_threshold, training_data[cell_type_list[0]], test_selected)): #check if diverse compared to historical or previously selected
+
+                    #Update selected LNP list with newly suggested and valid LNPs
+                    selected.append(suggested_x)
+                    selected_xy.append(np.append(suggested_x, pred_model.predict([suggested_x])[0]).astype(float) )
                     selected_reversed.append(reversed_x)
-                    print(f"Selected {len(selected)}: Avg surrogate variance = {min_avg_var:.5f}")
-
-
-            #removed selected candidate to reduce redundancy
-            X_candidates = np.delete(X_candidates, np.where((X_candidates == best_x).all(axis=1))[0], axis=0)
-
+                    test_selected.loc[len(test_selected)] = suggested_x
+                    print_slowly(f"i-optimal selected LNP {len(selected)} variance: {min_avg_var} ")
         
         labeled_reversed = pd.DataFrame(selected_reversed, columns = input_param_names)
 
@@ -312,12 +311,45 @@ def valid_formulation(formulation, input_param_names):
     for i in range(len(formulation)):
         if input_param_names[i] in ['PEG_(Chol+PEG)', '(IL+HL)', 'HL_(IL+HL)','SORT_of_total']:
             if formulation[i] < 0 or formulation[i] > 100:
+                print("LNP rejected, lipid percentage out of range")
                 return False 
         if input_param_names[i] == 'IL_NP_ratio':
-            if formulation[i] < 2 or formulation[i] > 12: # cap at 25 for NP_ratio
+            if formulation[i] < 2 or formulation[i] > 12: # limit at 2 and 12 for NP_ratio
+                print(f"LNP rejected, {formulation[i]} NP ratio out of range")
                 return False
     return True
 
+#SHAP importance weighted euclidian distance diversity thresholding
+def shap_euc_exclusion(formulation, feature_importance, diversity_threshold, historical_data, current_selection):
+    #feature importance normalization
+    max_feature_importance = feature_importance.max()
+    feat_norm = feature_importance/max_feature_importance
+        
+    # ensure formulation is numeric
+    form = np.array(formulation, dtype=float)
+    #concat historical and newly selected data
+    combined_selection = historical_data
+    if not current_selection.empty: 
+        combined_selection = pd.concat([historical_data, current_selection])
+    
+
+    # hist_matrix = historical_data[:, 1:].astype(float)
+    for hist_arr in combined_selection.values:
+        # hist_arr is now a 1D array of ints
+        
+        hist_arr_new = np.array(feat_norm, dtype = float)
+        diffs       = np.abs(hist_arr_new - form)
+        weighted_sq = [fi * (d**2) 
+                for fi, d in zip(feature_importance, diffs)]
+        distance    = np.sqrt(sum(weighted_sq))
+
+        if distance < diversity_threshold:
+            # it’s too far from at least one historical point
+            print("LNP rejected, not diverse enough")
+            return False
+
+    # no historical point was within the threshold
+    return True
 # Shap analysis run - outputs 
 def shap_analysis(RUN_NAME, cell_type,pipeline):
     # store models in dictionary 
@@ -351,36 +383,10 @@ def shap_analysis(RUN_NAME, cell_type,pipeline):
     return feature_importance
 
 
-#SHAP importance weighted euclidian distance diversity thresholding
-def shap_euc_exclusion(formulation, feature_importance, diversity_threshold, historical_data):
-    #feature importance normalization
-    max_feature_importance = feature_importance.max()
-    feat_norm = feature_importance/max_feature_importance
-        
-    # ensure formulation is numeric
-    form = np.array(formulation, dtype=float)
-
-    # hist_matrix = historical_data[:, 1:].astype(float)
-    for hist_arr in historical_data.values:
-        # hist_arr is now a 1D array of ints
-        
-        hist_arr_new = np.array(feat_norm, dtype = float)
-        diffs       = np.abs(hist_arr_new - form)
-        weighted_sq = [fi * (d**2) 
-                for fi, d in zip(feature_importance, diffs)]
-        distance    = np.sqrt(sum(weighted_sq))
-
-        if distance < diversity_threshold:
-            # it’s too far from at least one historical point
-            return False
-
-    # no historical point was within the threshold
-    return True
-    
 # NSGAII: modified Problem class to handle multiple XGBoost models
 class FormulationOptimizationProblem(Problem):
-    def __init__(self, direction, input_param_names,*xgb_models):
-        super().__init__(n_var=len(input_param_names), n_obj=len(xgb_models), n_constr=0, xl=0, xu=1.2)
+    def __init__(self, direction, input_param_names,*xgb_models, pbounds):
+        super().__init__(n_var=len(input_param_names), n_obj=len(xgb_models), n_constr=0, xl=pbounds[0], xu=pbounds[1])
         
         self.direction = direction
         self.input_param_names = input_param_names
@@ -506,3 +512,22 @@ def fit_gp_on_xgb_output(X_train, xgb_model):
     gp = GaussianProcessRegressor(kernel=kernel, alpha=1e-6, normalize_y=True)
     gp.fit(X_train, y_pred)
     return gp
+
+def i_optimal_search(X_train, X_candidates, X_eval, pred_model, gp, selected):
+    min_avg_var = np.inf
+    #Test and find best candidate
+    for x in X_candidates:
+        X_aug = np.vstack([X_train] + selected + [x])
+        y_aug = pred_model.predict(X_aug)
+
+        gp_temp = GaussianProcessRegressor(kernel=gp.kernel_, alpha=1e-6, normalize_y=True)
+        gp_temp.fit(X_aug, y_aug)
+
+        _, std = gp_temp.predict(X_eval, return_std=True)
+        avg_var = np.mean(std**2) ###OBJECTIVE FOR i-optimal sampling
+
+        if avg_var < min_avg_var:
+            min_avg_var = avg_var
+            best_x = x
+    
+    return best_x, min_avg_var 

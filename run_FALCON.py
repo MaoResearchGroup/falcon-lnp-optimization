@@ -34,8 +34,8 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['i-optimal'] # DA, BO, NSGAII, i-optimal
-  num_formulations = 12 #Default = 12 
+  opt_methods = ['BO'] # DA, BO, NSGAII, i-optimal
+  num_formulations = 2 #Default = 12 
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
@@ -90,7 +90,7 @@ def main():
   if run_optimization == True:
     optimized_formulations = []
     for opt_method in opt_methods:
-      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold, data_file_path)
+      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold)
 
 
     # Save the optimized formulations to a file
