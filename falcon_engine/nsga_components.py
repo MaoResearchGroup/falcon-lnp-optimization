@@ -10,12 +10,16 @@ from pymoo.operators.mutation.pm import PolynomialMutation
 
 class FormulationOptimizationProblem(Problem):
     def __init__(self, direction, input_param_names, *xgb_models, pbounds):
+        # Unpack parameter-specific bounds
+        xl_list = np.array([low for (low, high) in pbounds])
+        xu_list = np.array([high for (low, high) in pbounds])
+
         super().__init__(
             n_var=len(input_param_names),
             n_obj=len(xgb_models),
             n_constr=0,
-            xl=pbounds[0],
-            xu=pbounds[1]
+            xl=xl_list,
+            xu=xu_list
         )
 
         self.direction = direction

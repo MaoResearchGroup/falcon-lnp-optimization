@@ -32,7 +32,7 @@ import pandas as pd
 
 class OptimizationSearch:
     def __init__(self, models, input_scalars, output_scalars, training_data, input_param_names,
-                 cell_type_list, feature_importance, diversity_threshold, opt_method, norm_bounds=(-0.1, 1.2)):
+                 cell_type_list, feature_importance, diversity_threshold, opt_method, norm_bounds):
 
         self.models = models
         self.input_scalars = input_scalars
@@ -58,13 +58,15 @@ class OptimizationSearch:
             opt_method=self.opt_method
         )
 
+        print("SCALED SUGGESTION BOUNDS", self.norm_bounds)
+
     def run_i_optimal(self, num_formulations):
         print_slowly("\n--- STARTING i-optimal OPTIMIZATION ---")
         model = self.models[self.cell_type_list[0]]
         X_train = self.training_data[self.cell_type_list[0]]
         gp = self._fit_gp_on_model(X_train, model)
 
-        bounds = [self.norm_bounds] * len(self.input_param_names)
+        bounds = self.norm_bounds
         sampler = qmc.LatinHypercube(len(bounds))
         X_candidates = qmc.scale(sampler.random(1000), [b[0] for b in bounds], [b[1] for b in bounds])
         X_eval = qmc.scale(sampler.random(500), [b[0] for b in bounds], [b[1] for b in bounds])
@@ -84,8 +86,13 @@ class OptimizationSearch:
 
     def run_bayesian(self, num_formulations):
         print_slowly("\n--- STARTING BAYESIAN OPTIMIZATION ---")
-        pbounds = {f'param{i}': self.norm_bounds for i in range(1, len(self.input_param_names)+1)}
+        # pbounds = {f'param{i}': self.norm_bounds for i in range(1, len(self.input_param_names)+1)}
+        # print({f'param{i}': self.norm_bounds for i in range(1, len(self.input_param_names)+1)})
+        # pbounds = self.norm_bounds
 
+        # Convert self.norm_bounds to a dictionary format expected by BayesianOptimization
+        pbounds = {f'param{i+1}': self.norm_bounds[i] for i in range(len(self.input_param_names))}
+        print("Parameter bounds (scaled):", pbounds)
         while len(self.selector.optimized_formulations) < num_formulations:
             optimizer = BayesianOptimization(
                 f=lambda **params: self._objective_fcn_BO(self.all_evaluations, **params),
@@ -100,7 +107,7 @@ class OptimizationSearch:
 
     def run_dual_annealing(self, num_formulations):
         print_slowly("\n--- STARTING DUAL ANNEALING OPTIMIZATION ---")
-        bounds = [self.norm_bounds] * len(self.input_param_names)
+        bounds = self.norm_bounds
 
         while len(self.selector.optimized_formulations) < num_formulations:
             result = dual_annealing(
@@ -159,12 +166,14 @@ class OptimizationSearch:
 
     def _greedy_selection(self, points, n_select):
         remaining = points.tolist()
+        print(remaining)
 
         for x in remaining:
-            if self.selector.try_add_point(x):
+            if self.selector.try_add_point(x, verbose = True):
                 break
         else:
-            raise RuntimeError("No valid initial formulation found.")
+            print(f"No valid initial formulation found continuing to next seed")
+            return
 
         eval_count = 0
         while len(self.selector.optimized_formulations) < n_select:
@@ -208,27 +217,27 @@ class OptimizationSearch:
                 min_avg_var = avg_var
                 best_x = x
         return best_x, min_avg_var
-    def _nsga2_search(self, num_formulations, max_cell_targets, min_cell_targets, seed):
-        print_slowly("\n--- STARTING NSGA-II OPTIMIZATION ---")
+    # def _nsga2_search(self, num_formulations, max_cell_targets, min_cell_targets, seed):
+    #     print_slowly("\n--- STARTING NSGA-II OPTIMIZATION ---")
 
-        direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
-        ordered_models = [self.models[cell] for cell in self.cell_type_list]
+    #     direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
+    #     ordered_models = [self.models[cell] for cell in self.cell_type_list]
 
-        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=self.norm_bounds)
-        algorithm = NSGA2(
-            pop_size=500,
-            sampling=LHS(),
-            crossover=AdaptiveCrossover(base_prob=0.9, eta=15),
-            mutation=AdaptiveMutation(base_prob=0.1, eta=20),
-            eliminate_duplicates=True
-        )
+    #     problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=self.norm_bounds)
+    #     algorithm = NSGA2(
+    #         pop_size=500,
+    #         sampling=LHS(),
+    #         crossover=AdaptiveCrossover(base_prob=0.9, eta=15),
+    #         mutation=AdaptiveMutation(base_prob=0.1, eta=20),
+    #         eliminate_duplicates=True
+    #     )
 
-        res = minimize(problem, algorithm, termination=('n_gen', 250), seed=seed, save_history=True, verbose=True)
+    #     res = minimize(problem, algorithm, termination=('n_gen', 250), seed=seed, save_history=True, verbose=True)
 
-        front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
-        pareto_solutions = res.pop.get("X")[front]
+    #     front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
+    #     pareto_solutions = res.pop.get("X")[front]
 
-        return self._greedy_selection(pareto_solutions, num_formulations)
+    #     return self._greedy_selection(pareto_solutions, num_formulations)
 
     def _objective_fcn_BO(self, all_evaluations, **params):
         x = list(params.values())

@@ -22,7 +22,7 @@ from falcon_engine.utilities import print_slowly
 from .search_algorithms import OptimizationSearch
 import shap
 
-def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold, norm_suggestion_bounds = (-0.1, 1.2)):
+def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold, raw_bounds):
     """
     Run optimization for the given cell types and method.
     """
@@ -47,7 +47,11 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
     input_scalars = {}
     output_scalars = {}
     training_data = {}
+    scaled_bounds = {}  # final scaled bounds per cell_type
     pipeline = None
+
+
+
 
     for cell_type in cell_type_list:
         model_path = f'output/{RUN_NAME}/{cell_type}/'
@@ -58,8 +62,30 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
         input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
         training_data[cell_type] = pipeline['Data_preprocessing']['X']
-    input_param_names = pipeline['Data_preprocessing']['Input_Params']
+        input_param_names = pipeline['Data_preprocessing']['Input_Params']
 
+
+        # Scale bounds for search algorithms
+        scaler = input_scalars[cell_type]
+        cell_scaled_bounds = []
+        
+
+        for param in input_param_names:
+            raw_min, raw_max = raw_bounds[param]
+            scaled_min = scaler[param].transform([[raw_min]])[0][0]
+            scaled_max = scaler[param].transform([[raw_max]])[0][0]
+            cell_scaled_bounds.append((scaled_min, scaled_max))
+
+        scaled_bounds[cell_type] = cell_scaled_bounds
+
+    print("\n--- Raw (Unscaled) Bounds for Each Input Parameter ---")
+    for param in input_param_names:
+        if param in raw_bounds:
+            low, high = raw_bounds[param]
+            print(f"{param}: ({low:.4f}, {high:.4f})")
+        else:
+            print(f"{param}: [BOUND NOT FOUND]")
+    
     #shap analysis run for cell type 0 
     feature_importance = shap_analysis(RUN_NAME,cell_type_list[0],pipeline)
 
@@ -73,7 +99,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
                                     feature_importance, 
                                     diversity_threshold, 
                                     opt_method, 
-                                    norm_suggestion_bounds)
+                                    scaled_bounds[cell_type])
 
     if opt_method == "DA":
         suggested_LNPs = optimizer.run_dual_annealing(num_formulations)

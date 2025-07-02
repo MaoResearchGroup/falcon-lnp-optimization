@@ -34,11 +34,17 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['BO', 'i-optimal'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['NSGAII'] # DA, BO, NSGAII, i-optimal
 
-  num_formulations = 10 #Default = 12 
+  num_formulations = 2 #Default = 12 
 
-  suggestion_bounds = (-0.05, 1.2) #(0,1) only searches within the tested parameter space
+  raw_suggestion_bounds = {
+        'IL_NP_ratio': (2, 12),
+        'PEG_(Chol+PEG)': (0.1, 20),
+        '(IL+HL)':(0,100),
+        'HL_(IL+HL)':(0,100),
+        'SORT_of_total': (0,100)
+        }
     
   diversity_threshold = 0.05 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
 
@@ -61,7 +67,7 @@ def main():
 
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True # set true unless model is already trained and saved in output folder
+  run_model_training = False # set true unless model is already trained and saved in output folder
   run_optimization = True  # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
@@ -97,7 +103,7 @@ def main():
     optimized_formulations = pd.DataFrame()
     for opt_method in opt_methods:
       new_suggestions = run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold,
-                                                  norm_suggestion_bounds = suggestion_bounds)
+                                                  raw_suggestion_bounds)
 
       optimized_formulations = pd.concat([optimized_formulations, new_suggestions], ignore_index=True)
 
