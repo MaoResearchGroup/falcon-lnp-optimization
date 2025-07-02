@@ -58,6 +58,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     # load the file again 
     wb = openpyxl.load_workbook(dst, data_only = True)
     ws = wb["Formulations"] 
+    raw = ws
 
     ROW_NAME = {
         "ionizable": 5,   # Excel row 6:   Ionizable Lipid Name
