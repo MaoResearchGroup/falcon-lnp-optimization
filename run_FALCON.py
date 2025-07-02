@@ -34,17 +34,22 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['NSGAII'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['BO', 'i-optimal'] # DA, BO, NSGAII, i-optimal
+
   num_formulations = 2 #Default = 12 
+
+  suggestion_bounds = (-0.05, 1.2) #(0,1) only searches within the tested parameter space
+    
+  diversity_threshold = 0.05 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
   MAX_cell_targets = ['on_target']
   MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
-
-  #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
-  diversity_threshold = 1
+  
+  
+  LnRLU_floor = 0 #cutoff below which LnRLU values are considered 0
 
   #model training will be done for each cell type in this list
   #DA and BO will only use first cell type in this list for maximization, NSGAII will use all cell types
@@ -58,7 +63,7 @@ def main():
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = False # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
-  run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
+  run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
@@ -67,8 +72,9 @@ def main():
   # remove for now - 'NP_ratio',
   input_param_names = ['IL_NP_ratio','(IL+HL)','HL_(IL+HL)','PEG_(Chol+PEG)','SORT_of_total']
 
+  
   if run_model_training == True:  
-    LnRLU_floor = 2.5 #cutoff below which LnRLU values are considered 0
+
     for c in cell_type_list:   #Loop through model training for each cell type of interest
       pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
       #Initialize new model pipeline
@@ -88,13 +94,16 @@ def main():
       save_pipeline(pipeline=pipeline_dict, path = pipeline_path, step = 'FINAL SAVE')  
   
   if run_optimization == True:
-    optimized_formulations = []
+    optimized_formulations = pd.DataFrame()
     for opt_method in opt_methods:
-      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME,diversity_threshold)
+      new_suggestions = run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold,
+                                                  norm_suggestion_bounds = suggestion_bounds)
+
+      optimized_formulations = pd.concat([optimized_formulations, new_suggestions], ignore_index=True)
 
 
-    # Save the optimized formulations to a file
-    optimized_formulations = pd.DataFrame(optimized_formulations)
+
+    print(optimized_formulations)
 
     #export optimized_formulations as pkl
     with open(f'output/{RUN_NAME}/raw_suggested_formulations.pkl', 'wb') as f:
@@ -113,22 +122,26 @@ def main():
 
     # Create rows to append
     new_rows = []
-    for i, (x, y_dict, method) in enumerate(zip(optimized_formulations[0], optimized_formulations[1], optimized_formulations[2])):
+    for i, row in optimized_formulations.iterrows():
         new_row = {
             'Formula_label': last_label + i + 1,
             'Iter': last_iter + 1,
-            'Opt_Method': method,
+            'Opt_Method': row['opt_method'],
             'Ionizable_Lipid': last_ionizable,
             'Helper_lipid': last_helper,
         }
-        for j, param in enumerate(input_param_names):
-          new_row[param] = x[j]
-          new_rows.append(new_row)
+        for param in input_param_names:
+            new_row[param] = row[param]
+        new_rows.append(new_row)
+
+    # Create DataFrame from new rows
     df_new = pd.DataFrame(new_rows)
-    df_new_full = pd.DataFrame(columns=cols)  # full structure
+
+    # Create full structure if needed
+    df_new_full = pd.DataFrame(columns=cols)
     df_new_full = pd.concat([df_new_full, df_new], ignore_index=True)
 
-    # Combine and save
+    # Combine with existing data and save
     df_combined = pd.concat([df_existing, df_new_full], ignore_index=True)
     df_combined.to_csv(output_file_path, index=False)
     print(f"Optimized formulations saved to {output_file_path}")
