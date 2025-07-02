@@ -36,7 +36,7 @@ def main():
   ############### STEP 1: SEARCH CONFIGURATION #########################
   opt_methods = ['BO', 'i-optimal'] # DA, BO, NSGAII, i-optimal
 
-  num_formulations = 2 #Default = 12 
+  num_formulations = 10 #Default = 12 
 
   suggestion_bounds = (-0.05, 1.2) #(0,1) only searches within the tested parameter space
     

@@ -114,28 +114,6 @@ class OptimizationSearch:
             self.selector.try_add_point(maximal_x, verbose=True)
 
         return self.selector.get_optimized_formulations()
-
-    # def run_nsga2(self, num_formulations, max_cell_targets, min_cell_targets):
-    #     print_slowly("\n--- STARTING NSGA-II OPTIMIZATION ---")
-
-    #     direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
-    #     ordered_models = [self.models[cell] for cell in self.cell_type_list]
-
-    #     problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=self.norm_bounds)
-    #     algorithm = NSGA2(
-    #         pop_size=500,
-    #         sampling=LHS(),
-    #         crossover=AdaptiveCrossover(base_prob=0.9, eta=15),
-    #         mutation=AdaptiveMutation(base_prob=0.1, eta=20),
-    #         eliminate_duplicates=True
-    #     )
-
-    #     res = minimize(problem, algorithm, termination=('n_gen', 250), seed=1, save_history=True, verbose=True)
-
-    #     front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
-    #     pareto_solutions = res.pop.get("X")[front]
-
-    #     return self._greedy_selection(pareto_solutions, num_formulations)
     
     def run_nsga2(self, num_formulations, max_cell_targets, min_cell_targets):
         print_slowly("\n--- STARTING NSGA-II OPTIMIZATION ---")

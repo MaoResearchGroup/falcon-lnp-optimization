@@ -89,7 +89,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         raise KeyError
     
     #Save as .pkl and as excel for user
-    suggested_LNPs.to_csv(f'output/{RUN_NAME}/{opt_method}_all_evaluations.csv', index=False)
+    suggested_LNPs.to_csv(f'output/{RUN_NAME}/{opt_method}_valid_suggestions.csv', index=False)
 
     return suggested_LNPs
 
