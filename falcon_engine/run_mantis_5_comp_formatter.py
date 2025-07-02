@@ -19,25 +19,40 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     print(f"Formulation template copied as {dst}")
 
     excel_param_order = ['IL_NP_ratio',	'(IL+HL)',	'HL_(IL+HL)', 'PEG_(Chol+PEG)',	'SORT_of_total']
+    
+    
     # Create a lookup: param name -> index in optimized_formulations
     param_index_lookup = {name: idx for idx, name in enumerate(input_param_names)}
 
+    print(param_index_lookup)
     wb = openpyxl.load_workbook(dst)
     ws = wb["Formulations"] 
-    reversed_x = optimized_formulations[0]
-    opt_methods = optimized_formulations[2]
 
-    #take user input for IL and HL names
-    IL_name = input("Enter the name of your Ionizable Lipid used (IL)\n(Choose SM102, Dlin, or ALC0315): ")
-    HL_name = input(
-        "Enter the name of your Helper Lipid used (HL)\n"
-        "(Choose from: DOTAP, DSPC, 18PG, DOPE, DDAB, 14PA, 18MP): "
-    )
-    SORT_name = input("Enter name of sort lipid")
+    excel_param_order = ['IL_NP_ratio', '(IL+HL)', 'HL_(IL+HL)', 'PEG_(Chol+PEG)', 'SORT_of_total']
+    reversed_x, opt_methods = extract_optimized_formulations(optimized_formulations, excel_param_order)
+
+    # FOR TESTINGS
+    IL_name = "SM_102"
+    HL_name = "DSPC"
+    SORT_name = "18PG"
+
+
+
+
+    # #take user input for IL and HL names
+    # IL_name = input("Enter the name of your Ionizable Lipid used (IL)\n(Choose SM102, Dlin, or ALC0315): ")
+    # HL_name = input(
+    #     "Enter the name of your Helper Lipid used (HL)\n"
+    #     "(Choose from: DOTAP, DSPC, 18PG, DOPE, DDAB, 14PA, 18MP): "
+    # )
+    # SORT_name = input(
+    #     "Enter the name of your Helper Lipid used (HL)\n"
+    #     "(Choose from: DOTAP, DDAB, 18PG, 14PA, 18MP): "
+    # )
 
     for i in range(len(reversed_x)): 
       for j, param_name in enumerate(excel_param_order):
-        row_idx = 10 + j
+        row_idx = 11 + j
         col_letter = get_column_letter(3 + i)
         value = reversed_x[i][param_index_lookup[param_name]]
         ws[f"{col_letter}{row_idx}"] = round(value, 3)
@@ -60,101 +75,130 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     # load the file again 
     wb = openpyxl.load_workbook(dst, data_only = True)
     ws = wb["Formulations"] 
-    raw = ws
-
+   
+    print(ws)
+    ##### THESE ARE SPECIFIC TO THE TEMPLATE EXCEL
     ROW_NAME = {
-        "ionizable": 5,   # Excel row 6:   Ionizable Lipid Name
-        "helper":    6,   # row 7: Helper Lipid Name
-        "chol":      7,   # row 8: Cholesterol Lipid Name
-        "peg":       8,   # row 9: PEG Lipid Name
-        "fifth":     9,   # row 10: 5th component name
+        "Ionizable_Lipid": 6,   # Excel row 6:   Ionizable Lipid Name
+        "Helper_Lipid":    7,   # row 7: Helper Lipid Name
+        "Chol":      8,   # row 8: Cholesterol Lipid Name
+        "PEG":       9,   # row 9: PEG Lipid Name
+        "SORT_Lipid":     10,   # row 10: 5th component name
     }
     ROW_CONC = {
-        "ionizable": 78,  # row 79: Ionizable L. Conc.
-        "helper":    79,  # row 80: Helper L. Conc.
-        "chol":      80,  # row 81: Cholesterol Conc.
-        "peg":       81,  # row 82: DMG-PEG Conc.
-        "fifth":     84,  # row 85: 5th component Conc.
+        "Ionizable_Lipid": 79,  # row 79: Ionizable L. Conc.
+        "Helper_Lipid":    80,  # row 80: Helper L. Conc.
+        "Chol":      81,  # row 81: Cholesterol Conc.
+        "PEG":       82,  # row 82: DMG-PEG Conc.
+        "SORT_Lipid":     85,  # row 85: 5th component Conc.
     }
     ROW_VOL = {
-        "ionizable": 90,  # row 91: SM102 solution (µL)
-        "helper":    91,  # row 92: Helper lipid solution (µL)
-        "chol":      92,  # row 93: Cholesterol solution (µL)
-        "peg":       93,  # row 94: DMG-PEG solution (µL)
-        "fifth":     95,  # row 96: 5th component TO ADD (µL)
-        "ethanol":   96,  # row 97: Needed Ethanol Volume (µL)
+        "Ionizable_Lipid": 91,  # row 91: SM102 solution (µL)
+        "Helper_Lipid":    92,  # row 92: Helper lipid solution (µL)
+        "Chol":      93,  # row 93: Cholesterol solution (µL)
+        "PEG":       94,  # row 94: DMG-PEG solution (µL)
+        "SORT_Lipid":     96,  # row 96: 5th component TO ADD (µL)
+        "EtOH":   97,  # row 97: Needed Ethanol Volume (µL)
     }
 
-    # ←—— this is the one change
-    num_cols = raw.shape[1]
-    form_cols = [
-        c for c in range(2, num_cols)
-        if pd.notna(raw.iloc[ROW_NAME["ionizable"], c])
-    ]
+        # === DETERMINE NUMBER OF FORMULATIONS ===
+    # Start from column C (index 3), go right until empty
+    formulation_cols = []
+    col = 3
+    print(ws.cell(row=79, column=col).value)
+    while ws.cell(row=79, column=col).value is not None:
+        print("checking formulations")
+        formulation_cols.append(col)
+        col += 1
 
-    records = []
-    for c in form_cols:
-        rec = {}
-        for comp in ROW_NAME:
-            name = raw.iloc[ROW_NAME[comp], c]
-            conc = raw.iloc[ROW_CONC[comp],    c]
-            vol  = raw.iloc[ROW_VOL[comp],     c]
-            if pd.isna(name) or pd.isna(conc) or conc == 0:
-                continue
-            header = f"{conc:g}_mg_ml_{name}"
-            rec[header] = vol
+    print("Formulation Columns", formulation_cols)
+    # === BUILD UNIQUE COLUMN HEADERS ===
+    unique_headers = []
 
-        eth = raw.iloc[ROW_VOL["ethanol"], c]
-        if pd.notna(eth) and eth != 0:
-            hv = math.floor(eth)
-            lv = eth - hv
-            rec["100%_EtOH_HV"] = hv
-            rec["100%_EtOH_LV"] = lv
+    # 1. Get all unique stock concentrations for naming
+    stock_map = {}
+    for name, row in ROW_CONC.items():
+        stock_map[name] = {}
+        for col in formulation_cols:
+            conc = ws.cell(row=row, column=col).value
+            if name == "Ionizable_Lipid":
+                stock_map[name][conc] = f"{IL_name}_{conc}mg_ml"
+            elif name == "Helper_Lipid":
+                stock_map[name][conc] = f"{HL_name}_{conc}mg_ml"
+            elif name == "SORT_Lipid":
+                stock_map[name][conc] = f"{SORT_name}_{conc}mg_ml"
+            else:
+                stock_map[name][conc] = f"{name}_{conc}mg_ml"
 
-        records.append(rec)
+    print("stock map", stock_map)
+    # 2. Flatten and deduplicate column names (preserve order)
+    for name in ["Ionizable_Lipid", "Helper_Lipid", "Chol", "PEG", "SORT_Lipid"]:
+        for conc, label in stock_map[name].items():
+            if label not in unique_headers:
+                unique_headers.append(label)
 
-    out = pd.DataFrame(records).fillna(0)
 
-    # 6) Sort columns: ionizable, helper, fifth, chol, peg (by ascending concentration), then ethanol
-    # Gather names by group
-    names_by_group = {comp: set() for comp in ROW_NAME}
-    for c in form_cols:
-        for comp in ROW_NAME:
-            nm = raw.iloc[ROW_NAME[comp], c]
-            if pd.notna(nm):
-                names_by_group[comp].add(nm)
+    # Always include ethanol
+    unique_headers.append("EtOH_HV")
+    unique_headers.append("EtOH_LV")
 
-    # Group headers and collect ethanol
-    grouped = {comp: [] for comp in ['ionizable','helper','fifth','chol','peg']}
-    eth_cols = []
-    for col in out.columns:
-        if col.startswith("100%_EtOH_"):
-            eth_cols.append(col)
-        else:
-            conc_str, lipid = col.split("_mg_ml_", 1)
-            conc = float(conc_str)
-            for comp, names in names_by_group.items():
-                if lipid in names:
-                    grouped[comp].append((col, conc))
-                    break
+    print("UNIQUE HEADERS", unique_headers)
+    
+    # === BUILD DATAFRAME ===
+    rows = []
+    for f_idx, col in enumerate(formulation_cols):
+        row_dict = {}
 
-    # Build ordered column list
-    ordered_cols = []
-    for comp in ['ionizable','helper','fifth','chol','peg']:
-        ordered_cols += [col for col, _ in sorted(grouped[comp], key=lambda x: x[1])]
+        # Get volumes by stock conc
+        for name in ["Ionizable_Lipid", "Helper_Lipid", "Chol", "PEG", "SORT_Lipid"]:
+            
+            stock = ws.cell(row=ROW_CONC[name], column=col).value
+            
+            raw_val = ws.cell(row=ROW_VOL[name], column=col).value
+            print(ROW_VOL)
+            print(stock)
+            print(raw_val)
+            try:
+                vol = float(raw_val)
+            except (TypeError, ValueError):
+                vol = 0.0
+            if name == "Ionizable_Lipid":
+                label = f"{IL_name}_{stock}mg_ml"
+            elif name == "Helper_Lipid":
+                label = f"{HL_name}_{stock}mg_ml"
+            elif name == "SORT_Lipid":
+                label = f"{SORT_name}_{stock}mg_ml"
+            else:
+                label = f"{name}_{stock}mg_ml"
+            row_dict[label] = round(vol, 3)
 
-    # Ethanol last: HV then LV
-    for et in ["100%_EtOH_HV", "100%_EtOH_LV"]:
-        if et in eth_cols:
-            ordered_cols.append(et)
+        print("ETHANOL ROW", ROW_VOL["EtOH"])
+        raw_ethanol = ws.cell(row=ROW_VOL["EtOH"], column=col).value
+        try:
+            ethanol = float(raw_ethanol)
+        except (TypeError, ValueError):
+            ethanol = 0.0
 
-    out = out[ordered_cols]
+        ethanol_hv = int(ethanol)
+        ethanol_lv = round(ethanol - ethanol_hv, 3)
+
+        row_dict["EtOH_HV"] = ethanol_hv
+        row_dict["EtOH_LV"] = ethanol_lv
+
+        # Fill missing cols with 0
+        for header in unique_headers:
+            row_dict.setdefault(header, 0.0)
+
+        # Add to master list
+        rows.append(row_dict)
+
+    # Create DataFrame
+    df = pd.DataFrame(rows)
     
     csv_path = f'exp_templates/{RUN_NAME}_mantis_ready.csv'
     # Save to CSV
-    out.to_csv(csv_path, index = False)
+    df.to_csv(csv_path, index = False)
     print(f"Mantis-ready CSV saved as {csv_path}")
-
 
 def open_excel_file(filepath):
     system = platform.system()
@@ -166,3 +210,16 @@ def open_excel_file(filepath):
         subprocess.call(["xdg-open", filepath])
     else:
         print("Unsupported OS. Please open the file manually:", filepath)
+
+def extract_optimized_formulations(df, excel_param_order):
+    """
+    Given a DataFrame of optimized results and the parameter order, return
+    reversed_x (list of parameter vectors) and opt_methods (list of optimization methods).
+    """
+    # Extract parameter vectors (rows of values in the given order)
+    reversed_x = df[excel_param_order].values.tolist()
+
+    # Extract optimization method for each formulation
+    opt_methods = df["opt_method"].tolist()
+
+    return reversed_x, opt_methods

@@ -68,8 +68,8 @@ def main():
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = False # set true unless model is already trained and saved in output folder
-  run_optimization = True  # set true unless de novo formulation generation is not desired 
-  run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
+  run_optimization = False  # set true unless de novo formulation generation is not desired 
+  run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
@@ -156,11 +156,10 @@ def main():
     with open(f'output/{RUN_NAME}/raw_suggested_formulations.pkl', 'rb') as f:
       optimized_formulations = pickle.load(f)
       
-    print(optimized_formulations)
     run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formulations)
     import sys
     exit()
 if __name__ == "__main__":
-    startup_banner()
+    # startup_banner()
     # Run the main function
     main()

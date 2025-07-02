@@ -77,7 +77,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     # Start from column C (index 3), go right until empty
     formulation_cols = []
     col = 3
-    while ws.cell(row=54, column=col).value is not None:
+    while ws.cell(row=79, column=col).value is not None:
         formulation_cols.append(col)
         col += 1
 
