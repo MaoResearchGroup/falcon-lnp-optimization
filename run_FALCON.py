@@ -34,16 +34,16 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['NSGAII'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['BO','i-optimal'] # DA, BO, NSGAII, i-optimal
 
-  num_formulations = 2 #Default = 12 
+  num_formulations = 15 #Default = 12 
 
   raw_suggestion_bounds = {
         'IL_NP_ratio': (2, 12),
         'PEG_(Chol+PEG)': (0.1, 20),
-        '(IL+HL)':(0,100),
-        'HL_(IL+HL)':(0,100),
-        'SORT_of_total': (0,100)
+        '(IL+HL)':(20,100),
+        'HL_(IL+HL)':(0,80),
+        'SORT_of_total': (0,80)
         }
     
   diversity_threshold = 0.05 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)

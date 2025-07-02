@@ -67,14 +67,14 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
         "helper":    6,   # row 7: Helper Lipid Name
         "chol":      7,   # row 8: Cholesterol Lipid Name
         "peg":       8,   # row 9: PEG Lipid Name
-        # "fifth":     9,   # row 10: 5th component name
+        "fifth":     9,   # row 10: 5th component name
     }
     ROW_CONC = {
         "ionizable": 78,  # row 79: Ionizable L. Conc.
         "helper":    79,  # row 80: Helper L. Conc.
         "chol":      80,  # row 81: Cholesterol Conc.
         "peg":       81,  # row 82: DMG-PEG Conc.
-        # "fifth":     84,  # row 85: 5th component Conc.
+        "fifth":     84,  # row 85: 5th component Conc.
     }
     ROW_VOL = {
         "ionizable": 90,  # row 91: SM102 solution (µL)
