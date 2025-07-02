@@ -18,7 +18,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     shutil.copy(src, dst)
     print(f"Formulation template copied as {dst}")
 
-    excel_param_order = ['NP_ratio', 'IL+HL', 'HL_IL+HL', 'PEG_PEG+Chol']
+    excel_param_order = ['IL_NP_ratio',	'(IL+HL)',	'HL_(IL+HL)', 'PEG_(Chol+PEG)',	'SORT_of_total']
     # Create a lookup: param name -> index in optimized_formulations
     param_index_lookup = {name: idx for idx, name in enumerate(input_param_names)}
 
@@ -33,6 +33,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
         "Enter the name of your Helper Lipid used (HL)\n"
         "(Choose from: DOTAP, DSPC, 18PG, DOPE, DDAB, 14PA, 18MP): "
     )
+    SORT_name = input("Enter name of sort lipid")
 
     for i in range(len(reversed_x)): 
       for j, param_name in enumerate(excel_param_order):
@@ -44,6 +45,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
         ws[f"{col_letter}7"] = HL_name 
         ws[f"{col_letter}8"] = "Chol"
         ws[f"{col_letter}9"] = "DMG_PEG" 
+        ws[f"{col_letter}10"] = SORT_name
 
         ws[f"{col_letter}3"] = i 
         ws[f"{col_letter}4"] =  opt_methods[i]
