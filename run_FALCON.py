@@ -57,13 +57,13 @@ def main():
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
   RUN_NAME = "DOPE_5_component" #Give a name for run folder to save any trained models
-  DATASET_NAME = 'DOPE_5_comp_LNPs_library' #Name of the csv file, used to extract training data
+  DATASET_NAME = 'iter_1_training_falcon(DSPC)' #Name of the csv file, used to extract training data
 
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = False # set true unless model is already trained and saved in output folder
-  run_optimization = False# set true unless de novo formulation generation is not desired 
-  run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
+  run_model_training = True # set true unless model is already trained and saved in output folder
+  run_optimization = True  # set true unless de novo formulation generation is not desired 
+  run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
