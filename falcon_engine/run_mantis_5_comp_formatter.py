@@ -24,31 +24,24 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     # Create a lookup: param name -> index in optimized_formulations
     param_index_lookup = {name: idx for idx, name in enumerate(input_param_names)}
 
-    print(param_index_lookup)
     wb = openpyxl.load_workbook(dst)
     ws = wb["Formulations"] 
 
     excel_param_order = ['IL_NP_ratio', '(IL+HL)', 'HL_(IL+HL)', 'PEG_(Chol+PEG)', 'SORT_of_total']
     reversed_x, opt_methods = extract_optimized_formulations(optimized_formulations, excel_param_order)
 
-    # FOR TESTINGS
-    IL_name = "SM_102"
-    HL_name = "DSPC"
-    SORT_name = "18PG"
 
 
-
-
-    # #take user input for IL and HL names
-    # IL_name = input("Enter the name of your Ionizable Lipid used (IL)\n(Choose SM102, Dlin, or ALC0315): ")
-    # HL_name = input(
-    #     "Enter the name of your Helper Lipid used (HL)\n"
-    #     "(Choose from: DOTAP, DSPC, 18PG, DOPE, DDAB, 14PA, 18MP): "
-    # )
-    # SORT_name = input(
-    #     "Enter the name of your Helper Lipid used (HL)\n"
-    #     "(Choose from: DOTAP, DDAB, 18PG, 14PA, 18MP): "
-    # )
+    #take user input for IL and HL names
+    IL_name = input("Enter the name of your Ionizable Lipid used (IL)\n(Choose SM102, Dlin, or ALC0315): ")
+    HL_name = input(
+        "Enter the name of your Helper Lipid used (HL)\n"
+        "(Choose from: DOTAP, DSPC, 18PG, DOPE, DDAB, 14PA, 18MP): "
+    )
+    SORT_name = input(
+        "Enter the name of your Helper Lipid used (HL)\n"
+        "(Choose from: DOTAP, DDAB, 18PG, 14PA, 18MP): "
+    )
 
     for i in range(len(reversed_x)): 
       for j, param_name in enumerate(excel_param_order):
@@ -75,16 +68,8 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     # load the file again 
     wb = openpyxl.load_workbook(dst, data_only = True)
     ws = wb["Formulations"] 
-   
-    print(ws)
+
     ##### THESE ARE SPECIFIC TO THE TEMPLATE EXCEL
-    ROW_NAME = {
-        "Ionizable_Lipid": 6,   # Excel row 6:   Ionizable Lipid Name
-        "Helper_Lipid":    7,   # row 7: Helper Lipid Name
-        "Chol":      8,   # row 8: Cholesterol Lipid Name
-        "PEG":       9,   # row 9: PEG Lipid Name
-        "SORT_Lipid":     10,   # row 10: 5th component name
-    }
     ROW_CONC = {
         "Ionizable_Lipid": 79,  # row 79: Ionizable L. Conc.
         "Helper_Lipid":    80,  # row 80: Helper L. Conc.
@@ -105,13 +90,11 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     # Start from column C (index 3), go right until empty
     formulation_cols = []
     col = 3
-    print(ws.cell(row=79, column=col).value)
+
     while ws.cell(row=79, column=col).value is not None:
-        print("checking formulations")
         formulation_cols.append(col)
         col += 1
 
-    print("Formulation Columns", formulation_cols)
     # === BUILD UNIQUE COLUMN HEADERS ===
     unique_headers = []
 
@@ -130,7 +113,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
             else:
                 stock_map[name][conc] = f"{name}_{conc}mg_ml"
 
-    print("stock map", stock_map)
+
     # 2. Flatten and deduplicate column names (preserve order)
     for name in ["Ionizable_Lipid", "Helper_Lipid", "Chol", "PEG", "SORT_Lipid"]:
         for conc, label in stock_map[name].items():
@@ -142,7 +125,6 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     unique_headers.append("EtOH_HV")
     unique_headers.append("EtOH_LV")
 
-    print("UNIQUE HEADERS", unique_headers)
     
     # === BUILD DATAFRAME ===
     rows = []
@@ -155,9 +137,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
             stock = ws.cell(row=ROW_CONC[name], column=col).value
             
             raw_val = ws.cell(row=ROW_VOL[name], column=col).value
-            print(ROW_VOL)
-            print(stock)
-            print(raw_val)
+
             try:
                 vol = float(raw_val)
             except (TypeError, ValueError):
@@ -172,7 +152,6 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
                 label = f"{name}_{stock}mg_ml"
             row_dict[label] = round(vol, 3)
 
-        print("ETHANOL ROW", ROW_VOL["EtOH"])
         raw_ethanol = ws.cell(row=ROW_VOL["EtOH"], column=col).value
         try:
             ethanol = float(raw_ethanol)
