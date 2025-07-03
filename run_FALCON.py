@@ -34,7 +34,7 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['BO','i-optimal'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['BO','i-optimal','NSGAII'] # DA, BO, NSGAII, i-optimal
 
   num_formulations = 15 #Default = 12 
 
@@ -51,7 +51,7 @@ def main():
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
   MAX_cell_targets = ['on_target']
-  MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
+  MIN_cell_targets = ['RLU_HEPG2'] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
   
   
@@ -63,12 +63,12 @@ def main():
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
   RUN_NAME = "DOPE_5_component" #Give a name for run folder to save any trained models
-  DATASET_NAME = 'iter_1_training_falcon(DSPC)' #Name of the csv file, used to extract training data
+  DATASET_NAME = '18PG_post_iter1_NORM(Falcon) (1)' #Name of the csv file, used to extract training data
 
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = False # set true unless model is already trained and saved in output folder
-  run_optimization = False  # set true unless de novo formulation generation is not desired 
+  run_model_training = True # set true unless model is already trained and saved in output folder
+  run_optimization = True  # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
