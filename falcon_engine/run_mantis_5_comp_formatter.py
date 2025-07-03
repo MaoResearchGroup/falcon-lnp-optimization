@@ -11,7 +11,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     print_slowly("\n\n--- FORMATTING OPTIMIZED FORMULATIONS FOR MANTIS ---")
 
     # Define source and destination file paths
-    src = os.path.join("exp_templates", "5_comp_formulation_template.xlsx")
+    src = os.path.join("exp_templates", "5_comp_LNP_CORRECT_TEMPLATE.xlsx")
     dst = os.path.join("exp_templates", f"{RUN_NAME}_formulation_sheet.xlsx")
     
     # Copy the file
@@ -71,19 +71,19 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
 
     ##### THESE ARE SPECIFIC TO THE TEMPLATE EXCEL
     ROW_CONC = {
-        "Ionizable_Lipid": 79,  # row 79: Ionizable L. Conc.
-        "Helper_Lipid":    80,  # row 80: Helper L. Conc.
-        "Chol":      81,  # row 81: Cholesterol Conc.
-        "PEG":       82,  # row 82: DMG-PEG Conc.
-        "SORT_Lipid":     85,  # row 85: 5th component Conc.
+        "Ionizable_Lipid": 81,  # row 79: Ionizable L. Conc.
+        "Helper_Lipid":    82,  # row 80: Helper L. Conc.
+        "Chol":      83,  # row 81: Cholesterol Conc.
+        "PEG":       84,  # row 82: DMG-PEG Conc.
+        "SORT_Lipid":     87,  # row 85: 5th component Conc.
     }
     ROW_VOL = {
-        "Ionizable_Lipid": 91,  # row 91: SM102 solution (µL)
-        "Helper_Lipid":    92,  # row 92: Helper lipid solution (µL)
-        "Chol":      93,  # row 93: Cholesterol solution (µL)
-        "PEG":       94,  # row 94: DMG-PEG solution (µL)
-        "SORT_Lipid":     96,  # row 96: 5th component TO ADD (µL)
-        "EtOH":   97,  # row 97: Needed Ethanol Volume (µL)
+        "Ionizable_Lipid": 93,  # row 91: SM102 solution (µL)
+        "Helper_Lipid":    94,  # row 92: Helper lipid solution (µL)
+        "Chol":      95,  # row 93: Cholesterol solution (µL)
+        "PEG":       96,  # row 94: DMG-PEG solution (µL)
+        "SORT_Lipid":     98,  # row 96: 5th component TO ADD (µL)
+        "EtOH":   99,  # row 97: Needed Ethanol Volume (µL)
     }
 
         # === DETERMINE NUMBER OF FORMULATIONS ===
