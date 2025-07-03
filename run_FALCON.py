@@ -36,7 +36,7 @@ def main():
   ############### STEP 1: SEARCH CONFIGURATION #########################
   opt_methods = ['BO','i-optimal','NSGAII'] # DA, BO, NSGAII, i-optimal
 
-  num_formulations = 15 #Default = 12 
+  num_formulations = 12 #Default = 12 
 
   raw_suggestion_bounds = {
         'IL_NP_ratio': (2, 12),
