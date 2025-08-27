@@ -6,7 +6,7 @@ from falcon_engine import learning_curve
 import pandas as pd
 import pickle 
 from falcon_engine.utilities import print_slowly
-from falcon_engine.run_mantis_formatter import run_mantis_formatter_pipeline
+from falcon_engine.run_mantis_compiled_formatter import run_mantis_formatter_pipeline
 
 """
 run_FALCON script
@@ -31,8 +31,18 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['BO', 'DA', 'NSGAII'] # DA, BO, NSGAII
+  opt_methods = ['i-optimal', 'NSGAII'] # DA, BO, NSGAII, i-optimal
   num_formulations = 12 #Default = 12 
+
+  raw_suggestion_bounds = {
+        'NP_ratio': (2, 12),
+        'PEG_PEG+Chol': (0, 90),
+        'IL+HL':(20,100),
+        'HL_IL+HL':(0,90),
+        'SORT_of_total': (0,80)
+        }
+    
+  diversity_threshold = 0.05 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
@@ -45,12 +55,12 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "demo" #Give a name for run folder to save any trained models
+  RUN_NAME = "DSPC_spleen" #Give a name for run folder to save any trained models
   DATASET_NAMES = {"HEPG2":'HEPG2_DSPC(Sheet2)', "RAMOS": "DSPC_RAMOS(Sheet2)"} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True # set true unless model is already trained and saved in output folder
+  run_model_training = False # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
@@ -63,9 +73,10 @@ def main():
                         'IL+HL',
                         'HL_IL+HL',
                         'PEG_PEG+Chol'] 
+  
 
   if run_model_training == True:  
-    LnRLU_floor = 2.5 #cutoff below which LnRLU values are considered 0
+    LnRLU_floor = 0 #cutoff below which LnRLU values are considered 0
     for c in cell_type_list:   #Loop through model training for each cell type of interest
       pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
       data_file_path = f'datasets/{DATASET_NAMES[c]}.csv'
@@ -86,18 +97,22 @@ def main():
       save_pipeline(pipeline=pipeline_dict, path = pipeline_path, step = 'FINAL SAVE')  
   
   if run_optimization == True:
-    optimized_formulations = []
+    optimized_formulations = pd.DataFrame()
     for opt_method in opt_methods:
-      optimized_formulations += run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME)
+      new_suggestions = run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold,
+                                                  raw_suggestion_bounds)
+
+      optimized_formulations = pd.concat([optimized_formulations, new_suggestions], ignore_index=True)
 
 
-    # Save the optimized formulations to a file
-    optimized_formulations = pd.DataFrame(optimized_formulations)
+
+    print(optimized_formulations)
 
     #export optimized_formulations as pkl
     with open(f'output/{RUN_NAME}/raw_suggested_formulations.pkl', 'wb') as f:
       pickle.dump(optimized_formulations, f)
 
+    data_file_path = f'datasets/{DATASET_NAMES[cell_type_list[0]]}.csv' #ASSIGNED TO FIRST CELL IN CELL LIST
     df_existing = pd.read_csv(data_file_path)
     last_label = df_existing['Formula_label'].max() 
     last_iter = df_existing['Iter'].max()
@@ -111,25 +126,30 @@ def main():
 
     # Create rows to append
     new_rows = []
-    for i, (x, y_dict, method) in enumerate(zip(optimized_formulations[0], optimized_formulations[1], optimized_formulations[2])):
+    for i, row in optimized_formulations.iterrows():
         new_row = {
             'Formula_label': last_label + i + 1,
             'Iter': last_iter + 1,
-            'Opt_Method': method,
+            'Opt_Method': row['opt_method'],
             'Ionizable_Lipid': last_ionizable,
             'Helper_lipid': last_helper,
         }
-        for j, param in enumerate(input_param_names):
-          new_row[param] = x[j]
-          new_rows.append(new_row)
+        for param in input_param_names:
+            new_row[param] = row[param]
+        new_rows.append(new_row)
+
+    # Create DataFrame from new rows
     df_new = pd.DataFrame(new_rows)
-    df_new_full = pd.DataFrame(columns=cols)  # full structure
+
+    # Create full structure if needed
+    df_new_full = pd.DataFrame(columns=cols)
     df_new_full = pd.concat([df_new_full, df_new], ignore_index=True)
 
-    # Combine and save
+    # Combine with existing data and save
     df_combined = pd.concat([df_existing, df_new_full], ignore_index=True)
     df_combined.to_csv(output_file_path, index=False)
     print(f"Optimized formulations saved to {output_file_path}")
+
 
   if run_mantis_formatter == True:
     with open(f'output/{RUN_NAME}/raw_suggested_formulations.pkl', 'rb') as f:
@@ -137,6 +157,6 @@ def main():
     run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formulations)
 
 if __name__ == "__main__":
-    startup_banner()
+    # startup_banner()
     # Run the main function
     main()

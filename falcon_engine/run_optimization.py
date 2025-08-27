@@ -69,7 +69,7 @@ def run_optimization_pipeline(opt_method, num_formulations, MAX_cell_targets, MI
         scaler = input_scalars[cell_type]
         cell_scaled_bounds = []
         
-
+        print(input_param_names)
         for param in input_param_names:
             raw_min, raw_max = raw_bounds[param]
             scaled_min = scaler[param].transform([[raw_min]])[0][0]
