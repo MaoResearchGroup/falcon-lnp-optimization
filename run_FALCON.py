@@ -31,23 +31,23 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['i-optimal', 'NSGAII'] # DA, BO, NSGAII, i-optimal
+  opt_methods = ['i-optimal', "DA"] # DA, BO, NSGAII, i-optimal
   num_formulations = 12 #Default = 12 
 
   raw_suggestion_bounds = {
-        'NP_ratio': (2, 12),
-        'PEG_PEG+Chol': (0, 90),
-        'IL+HL':(20,100),
+        # 'NP_ratio': (4,10),
+        'PEG_PEG+Chol': (0, 10),
+        'IL+HL':(25,90),
         'HL_IL+HL':(0,90),
-        'SORT_of_total': (0,80)
+        # 'SORT_of_total': (0,80)
         }
     
   diversity_threshold = 0.05 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['RAMOS']
-  MIN_cell_targets = ['HEPG2'] # set as empty list if no minimization is desired (not '') 
+  MAX_cell_targets = ['T']
+  MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
   #model training will be done for each cell type in this list
@@ -55,12 +55,12 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "DSPC_spleen" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"HEPG2":'HEPG2_DSPC(Sheet2)', "RAMOS": "DSPC_RAMOS(Sheet2)"} 
+  RUN_NAME = "HTS_AB_i1_NO_NP" #Give a name for run folder to save any trained models
+  DATASET_NAMES = {"T":'falcon_train(Sheet1) (1)'} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = False # set true unless model is already trained and saved in output folder
+  run_model_training = True # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
@@ -69,7 +69,7 @@ def main():
 
   # Input_Params (features to be used for model training and prediction) 
   # remove for now - 'NP_ratio',
-  input_param_names = [ 'NP_ratio',
+  input_param_names = [ #'NP_ratio',
                         'IL+HL',
                         'HL_IL+HL',
                         'PEG_PEG+Chol'] 
