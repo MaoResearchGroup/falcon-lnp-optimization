@@ -31,14 +31,14 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ['i-optimal', "DA"] # DA, BO, NSGAII, i-optimal
+  opt_methods = ["i-optimal", "DA"] # DA, BO, NSGAII, i-optimal
   num_formulations = 12 #Default = 12 
 
   raw_suggestion_bounds = {
-        # 'NP_ratio': (4,10),
-        'PEG_PEG+Chol': (0, 10),
-        'IL+HL':(25,90),
-        'HL_IL+HL':(0,90),
+        'NP_ratio': (4,10),
+        'PEG_PEG+Chol': (2, 10),
+        'IL+HL':(30,90),
+        'HL_IL+HL':(5,90),
         # 'SORT_of_total': (0,80)
         }
     
@@ -62,14 +62,14 @@ def main():
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
   run_model_training = True # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
-  run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
+  run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
    #Path to the dataset to be used for training
 
   # Input_Params (features to be used for model training and prediction) 
   # remove for now - 'NP_ratio',
-  input_param_names = [ #'NP_ratio',
+  input_param_names = [ 'NP_ratio',
                         'IL+HL',
                         'HL_IL+HL',
                         'PEG_PEG+Chol'] 
@@ -93,7 +93,7 @@ def main():
                                       N_CV=5)
       pipeline_dict, _, _, _= extract_training_data(pipeline_dict) 
       pipeline_dict, _, _, _ = run_Model_Selection(pipeline_dict)
-      pipeline_dict = learning_curve.get_learning_curve(pipeline_dict, refined = False)
+      # pipeline_dict = learning_curve.get_learning_curve(pipeline_dict, refined = False)
       save_pipeline(pipeline=pipeline_dict, path = pipeline_path, step = 'FINAL SAVE')  
   
   if run_optimization == True:
