@@ -37,7 +37,7 @@ def main():
   raw_suggestion_bounds = {
         'NP_ratio': (4,10),
         'PEG_PEG+Chol': (2, 10),
-        'IL+HL':(30,90),
+        'IL+HL':(20,90),
         'HL_IL+HL':(5,90),
         # 'SORT_of_total': (0,80)
         }
@@ -55,7 +55,7 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "HTS_AB_i2" #Give a name for run folder to save any trained models
+  RUN_NAME = "HTS_AB_i2_higher_chol" #Give a name for run folder to save any trained models
   DATASET_NAMES = {"T":'falcon_i2(Sheet1)'} 
   #Name of the csv file, used to extract training data}
 
