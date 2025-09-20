@@ -55,8 +55,8 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "HTS_AB_i1_NO_NP" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"T":'falcon_train(Sheet1) (1)'} 
+  RUN_NAME = "HTS_AB_i2_NO_NP" #Give a name for run folder to save any trained models
+  DATASET_NAMES = {"T":'falcon_i2(Sheet1)'} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
