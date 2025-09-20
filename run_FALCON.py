@@ -42,7 +42,7 @@ def main():
         # 'SORT_of_total': (0,80)
         }
     
-  diversity_threshold = 0.05 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
+  diversity_threshold = 0.1 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
@@ -55,7 +55,7 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "HTS_AB_i2_NO_NP" #Give a name for run folder to save any trained models
+  RUN_NAME = "HTS_AB_i2" #Give a name for run folder to save any trained models
   DATASET_NAMES = {"T":'falcon_i2(Sheet1)'} 
   #Name of the csv file, used to extract training data}
 
