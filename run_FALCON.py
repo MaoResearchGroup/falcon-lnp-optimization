@@ -32,7 +32,7 @@ def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
   opt_methods = ["i-optimal", "DA"] # DA, BO, NSGAII, i-optimal
-  num_formulations = 12 #Default = 12 
+  num_formulations = 5 #Default = 12 
 
   raw_suggestion_bounds = {
         'NP_ratio': (4,10),
@@ -41,12 +41,20 @@ def main():
         'HL_IL+HL':(5,90),
         # 'SORT_of_total': (0,80)
         }
+  
+  # raw_suggestion_bounds = {
+  #       'IL_Mol_RNA': (6,50),
+  #       'HL_Mol_RNA': (0, 100),
+  #       'Chol_Mol_RNA':(5,100),
+  #       'PEG_Mol_RNA':(0, 10),
+  #       # 'SORT_of_total': (0,80)
+  #       }
     
   diversity_threshold = 0.1 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['T']
+  MAX_cell_targets = ['RAMOS']
   MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
@@ -55,8 +63,9 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "HTS_AB_i3_expanded_range" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"T":'falcon_i3'} 
+  RUN_NAME = "HTS_hCD19_i1_RAMOS" #Give a name for run folder to save any trained models
+  DATASET_NAMES = {"T":'falcon_i3',
+                   "RAMOS": "hCD19_bLNP_v2"} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
@@ -67,12 +76,19 @@ def main():
   ########################################################################
    #Path to the dataset to be used for training
 
-  # Input_Params (features to be used for model training and prediction) 
-  # remove for now - 'NP_ratio',
+  # # Input_Params (features to be used for model training and prediction) 
+  # # remove for now - 'NP_ratio',
   input_param_names = [ 'NP_ratio',
                         'IL+HL',
                         'HL_IL+HL',
-                        'PEG_PEG+Chol'] 
+                        'PEG_PEG+Chol']
+
+
+  # #MOLAR AMOUNTS PARAMETERS 
+  # input_param_names = [ 'IL_Mol_RNA',
+  #                       'HL_Mol_RNA',
+  #                       'Chol_Mol_RNA',
+  #                       'PEG_Mol_RNA']
   
 
   if run_model_training == True:  
