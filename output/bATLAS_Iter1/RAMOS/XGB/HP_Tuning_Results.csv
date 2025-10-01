@@ -1,0 +1,22 @@
+﻿Iter (CV Fold),Valid Score (MAE),Test Score (MAE),Spearmans Rank,Pearsons Correlation,Model HyperParms,Formulation_Index (Hold out set),Experimental_Transfection,Predicted_Transfection,Score_difference
+1,0.22739394261460016,0.23360944498267475,"SignificanceResult(statistic=0.49999999999999994, pvalue=0.39100221895577053)","PearsonRResult(statistic=0.3459010916195755, pvalue=0.5685322564821934)","{'subsample': 1.0, 'reg_lambda': 0.01, 'reg_alpha': 0.001, 'n_estimators': 150, 'min_child_weight': 5.0, 'max_depth': 6, 'max_delta_step': 2, 'learning_rate': 0.05, 'gamma': 0}",[18 12 22 10  0],"[[0.25073541]
+ [0.19434824]
+ [0.53027737]
+ [0.48827627]
+ [0.82639346]]",[0.15987237 0.19614142 0.78704506 0.79008895 0.30958283],0.0062155023680745825
+2,0.09588981017825696,0.2304104197388306,"SignificanceResult(statistic=0.7999999999999999, pvalue=0.20000000000000007)","PearsonRResult(statistic=0.5986601368491684, pvalue=0.4013398631508316)","{'subsample': 0.6, 'reg_lambda': 0.01, 'reg_alpha': 0.001, 'n_estimators': 150, 'min_child_weight': 1.0, 'max_depth': 7, 'max_delta_step': 6, 'learning_rate': 0.2, 'gamma': 0}",[ 8 17  9 20],"[[0.18839151]
+ [0.28257079]
+ [0.13936257]
+ [0.73956662]]",[0.6108763  0.60346776 0.24441664 0.6663608 ],0.13452060956057366
+3,0.13265644316034816,0.2463151687938368,"SignificanceResult(statistic=0.39999999999999997, pvalue=0.6)","PearsonRResult(statistic=-0.17890978241535266, pvalue=0.8210902175846473)","{'subsample': 0.7, 'reg_lambda': 0.01, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 1.0, 'max_depth': 8, 'max_delta_step': 10, 'learning_rate': 0.1, 'gamma': 0}",[13 11  2 24],"[[0.3134459 ]
+ [0.27011682]
+ [0.49770288]
+ [0.2710184 ]]",[0.87140685 0.17285128 0.23304187 0.33639157],0.11365872563348864
+4,0.17384072459597746,0.2526865171296554,"SignificanceResult(statistic=1.0, pvalue=0.0)","PearsonRResult(statistic=0.9674619279617636, pvalue=0.03253807203823644)","{'subsample': 0.5, 'reg_lambda': 0.001, 'reg_alpha': 0.1, 'n_estimators': 400, 'min_child_weight': 5.0, 'max_depth': 4, 'max_delta_step': 1, 'learning_rate': 0.1, 'gamma': 0}",[15 16 21  4],"[[0.        ]
+ [0.85898375]
+ [0.34340413]
+ [0.85024025]]",[0.23360151 0.5092238  0.33350304 0.43275672],0.07884579253367793
+5,0.20632021136099743,0.17839220965264904,"SignificanceResult(statistic=0.6000000000000001, pvalue=0.3999999999999999)","PearsonRResult(statistic=0.9687034499916873, pvalue=0.03129655000831266)","{'subsample': 1.0, 'reg_lambda': 0.01, 'reg_alpha': 0.1, 'n_estimators': 400, 'min_child_weight': 4.0, 'max_depth': 6, 'max_delta_step': 8, 'learning_rate': 0.01, 'gamma': 0}",[ 3 19  7  6],"[[0.06123629]
+ [0.85932984]
+ [0.8067892 ]
+ [0.22043443]]",[0.2188371  0.5752425  0.58065146 0.17469145],0.027928001708348388

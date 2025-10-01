@@ -32,19 +32,19 @@ def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
   opt_methods = ["i-optimal", "DA"] # DA, BO, NSGAII, i-optimal
-  num_formulations = 5 #Default = 12 
+  num_formulations = 12 #Default = 12 
 
   raw_suggestion_bounds = {
         'NP_ratio': (4,10),
-        'PEG_PEG+Chol': (2, 10),
-        'IL+HL':(20,90),
-        'HL_IL+HL':(5,90),
+        'PEG_(Chol+PEG)': (2, 10),
+        '(IL+HL)':(20,90),
+        'HL_(IL+HL)':(5,90),
         # 'SORT_of_total': (0,80)
         }
   
   # raw_suggestion_bounds = {
-  #       'IL_Mol_RNA': (6,50),
-  #       'HL_Mol_RNA': (0, 100),
+  #       'IL_Mol_RNA': (6,60),
+  #       'HL_Mol_RNA': (0, 60),
   #       'Chol_Mol_RNA':(5,100),
   #       'PEG_Mol_RNA':(0, 10),
   #       # 'SORT_of_total': (0,80)
@@ -54,7 +54,7 @@ def main():
 
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['RAMOS']
+  MAX_cell_targets = ['T' ]
   MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
@@ -63,25 +63,26 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "HTS_hCD19_i1_RAMOS" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"T":'falcon_i3',
-                   'RAMOS': 'hCD19_bLNP_v2'} 
+  RUN_NAME = "tATLAS_Iter1" #Give a name for run folder to save any trained models
+  DATASET_NAMES = {"T":'tATLAS_i1_redo',
+                   'h19RAMOS': 'bATLAS_MasterCompiled',
+                   'DeltaRAMOS': 'bATLAS_MasterCompiled'} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True # set true unless model is already trained and saved in output folder
+  run_model_training = False  # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
    #Path to the dataset to be used for training
 
-  # # Input_Params (features to be used for model training and prediction) 
-  # # remove for now - 'NP_ratio',
+  # Input_Params (features to be used for model training and prediction) 
+  # remove for now - 'NP_ratio',
   input_param_names = [ 'NP_ratio',
-                        'IL+HL',
-                        'HL_IL+HL',
-                        'PEG_PEG+Chol']
+                        '(IL+HL)',
+                        'HL_(IL+HL)',
+                        'PEG_(Chol+PEG)']
 
 
   # #MOLAR AMOUNTS PARAMETERS 
@@ -92,10 +93,10 @@ def main():
   
 
   if run_model_training == True:  
-    LnRLU_floor = 0 #cutoff below which LnRLU values are considered 0
+    LnRLU_floor = -100 #cutoff below which LnRLU values are considered 0
     for c in cell_type_list:   #Loop through model training for each cell type of interest
       pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
-      data_file_path = f'datasets/{DATASET_NAMES[c]}.csv'
+      data_file_path = f'datasets/{DATASET_NAMES[c]}.xlsx'
       #Initialize new model pipeline
       pipeline_dict = init_pipeline(pipeline_path = pipeline_path,
                                       RUN_NAME=RUN_NAME,
@@ -128,8 +129,8 @@ def main():
     with open(f'output/{RUN_NAME}/raw_suggested_formulations.pkl', 'wb') as f:
       pickle.dump(optimized_formulations, f)
 
-    data_file_path = f'datasets/{DATASET_NAMES[cell_type_list[0]]}.csv' #ASSIGNED TO FIRST CELL IN CELL LIST
-    df_existing = pd.read_csv(data_file_path)
+    data_file_path = f'datasets/{DATASET_NAMES[cell_type_list[0]]}.xlsx' #ASSIGNED TO FIRST CELL IN CELL LIST
+    df_existing = pd.read_excel(data_file_path)
     last_label = df_existing['Formula_label'].max() 
     last_iter = df_existing['Iter'].max()
     last_ionizable = df_existing['Ionizable_Lipid'].dropna().iloc[-1]

@@ -88,7 +88,7 @@ def extract_training_data(pipeline):
     RLU_floor = pipeline['Data_preprocessing']['RLU_floor']
     
     #Extract datafile
-    df = pd.read_csv(data_path)
+    df = pd.read_excel(data_path, sheet_name= "Sheet1")
 
     #Formatting Training Data
     raw_data = df[['Formula_label', 'Helper_lipid'] + input_params + [prefix + cell_type]].copy()
