@@ -1,0 +1,44 @@
+﻿Iter (CV Fold),Valid Score (MAE),Test Score (MAE),Spearmans Rank,Pearsons Correlation,Model HyperParms,Formulation_Index (Hold out set),Experimental_Transfection,Predicted_Transfection,Score_difference
+1,0.14328473591441487,0.10395106756030896,"SignificanceResult(statistic=0.7380952380952381, pvalue=0.03655276105286081)","PearsonRResult(statistic=0.21335809933370398, pvalue=0.6119282901643288)","{'subsample': 1.0, 'reg_lambda': 0.1, 'reg_alpha': 0.1, 'n_estimators': 150, 'min_child_weight': 1.0, 'max_depth': 5, 'max_delta_step': 10, 'learning_rate': 0.01, 'gamma': 0}",[32  4 26 10 42  6 27 12],"[[0.24439665]
+ [0.22427094]
+ [0.25840237]
+ [0.24321866]
+ [0.48802972]
+ [0.39669258]
+ [0.25960243]
+ [0.28642225]]","[0.3103244  0.2855202  0.35352853 0.299258   0.34137037 0.4279912
+ 0.36218044 0.5591523 ]",0.03933366835410591
+2,0.12155235909557711,0.18940739619029215,"SignificanceResult(statistic=nan, pvalue=nan)","PearsonRResult(statistic=nan, pvalue=nan)","{'subsample': 0.5, 'reg_lambda': 0.001, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 5.0, 'max_depth': 7, 'max_delta_step': 6, 'learning_rate': 0.05, 'gamma': 8}",[24 20 39 31 38 25 14  7],"[[0.68009091]
+ [0.75072838]
+ [0.49485781]
+ [0.30723457]
+ [0.40803699]
+ [0.39656898]
+ [0.15983595]
+ [0.23705571]]","[0.2813417 0.2813417 0.2813417 0.2813417 0.2813417 0.2813417 0.2813417
+ 0.2813417]",0.06785503709471503
+3,0.12698488105179484,0.1018184850724193,"SignificanceResult(statistic=0.6904761904761906, pvalue=0.057990318164572716)","PearsonRResult(statistic=0.6846031893519078, pvalue=0.06105201948488849)","{'subsample': 1.0, 'reg_lambda': 0.1, 'reg_alpha': 0.1, 'n_estimators': 150, 'min_child_weight': 1.0, 'max_depth': 5, 'max_delta_step': 10, 'learning_rate': 0.01, 'gamma': 0}",[44 35 34 18  2 16 15 11],"[[0.08950501]
+ [0.07631568]
+ [0.23922209]
+ [0.49565745]
+ [0.20518334]
+ [0.31802291]
+ [0.1031847 ]
+ [0.30994793]]","[0.2818113  0.29251543 0.3189777  0.4421825  0.17395306 0.2949491
+ 0.27063936 0.36100048]",0.025166395979375533
+4,0.12053180696886268,0.12780583271369458,"SignificanceResult(statistic=0.5714285714285715, pvalue=0.1802019889115274)","PearsonRResult(statistic=0.779043809593429, pvalue=0.03897411216724056)","{'subsample': 1.0, 'reg_lambda': 0.1, 'reg_alpha': 0.1, 'n_estimators': 150, 'min_child_weight': 1.0, 'max_depth': 5, 'max_delta_step': 10, 'learning_rate': 0.01, 'gamma': 0}",[19 33 41 37 21 29 17],"[[0.29810188]
+ [0.25882194]
+ [0.44672735]
+ [0.44240702]
+ [1.        ]
+ [0.22351439]
+ [0.37188769]]","[0.28064504 0.22599481 0.29114392 0.4025545  0.5520262  0.33129787
+ 0.46505135]",0.007274025744831908
+5,0.12710188061947775,0.18805737403379033,"SignificanceResult(statistic=0.28571428571428575, pvalue=0.5345092286010406)","PearsonRResult(statistic=0.16168035768411454, pvalue=0.7290962785771271)","{'subsample': 0.7, 'reg_lambda': 0.01, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 1.0, 'max_depth': 8, 'max_delta_step': 10, 'learning_rate': 0.1, 'gamma': 0}",[ 3 28 13 43 36 22  0],"[[0.        ]
+ [0.32500058]
+ [0.18833299]
+ [0.15197264]
+ [0.27603608]
+ [0.28538334]
+ [0.51478224]]","[ 0.08954448  0.43916833  0.19125746 -0.05256118  0.6629623   0.3081597
+  0.01925375]",0.060955493414312584

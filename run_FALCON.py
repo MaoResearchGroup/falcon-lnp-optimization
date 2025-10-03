@@ -31,7 +31,7 @@ run_FALCON script
 def main():
 
   ############### STEP 1: SEARCH CONFIGURATION #########################
-  opt_methods = ["i-optimal", "DA"] # DA, BO, NSGAII, i-optimal
+  opt_methods = ["DA", "i-optimal"] # DA, BO, NSGAII, i-optimal
   num_formulations = 12 #Default = 12 
 
   raw_suggestion_bounds = {
@@ -63,14 +63,14 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "tATLAS_Iter1" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"T":'tATLAS_i1_redo',
-                   'h19RAMOS': 'bATLAS_MasterCompiled',
-                   'DeltaRAMOS': 'bATLAS_MasterCompiled'} 
+  RUN_NAME = "tATLAS_Iter2" #Give a name for run folder to save any trained models
+  DATASET_NAMES = {"T":'tATLAS_i2_redo',
+                   'h19RAMOS': 'bATLAS_MasterCompiled_reversed',
+                   'DeltaRAMOS': 'bATLAS_MasterCompiled_reversed'} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = False  # set true unless model is already trained and saved in output folder
+  run_model_training = True  # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
