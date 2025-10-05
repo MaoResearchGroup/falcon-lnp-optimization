@@ -38,7 +38,7 @@ def main():
         'NP_ratio': (4,10),
         'PEG_(Chol+PEG)': (2, 10),
         '(IL+HL)':(20,90),
-        'HL_(IL+HL)':(5,90),
+        'HL_(IL+HL)':(5,70),
         # 'SORT_of_total': (0,80)
         }
   
@@ -51,10 +51,9 @@ def main():
   #       }
     
   diversity_threshold = 0.1 #diversity threshold: how diverse do you want your parameters to be? ([0,1], 1 is more diverse)
-
   ############### STEP 2: CELL TYPES AND OBJECTIVE CONFIGURATION #######
   # ex. cell types used in manuscript ['RAMOS','DC','3T3','C2C12'] 
-  MAX_cell_targets = ['T' ]
+  MAX_cell_targets = ['T']
   MIN_cell_targets = [] # set as empty list if no minimization is desired (not '') 
   #MIN_cell_targets = ['DC','3T3','C2C12']
 
@@ -63,14 +62,14 @@ def main():
   cell_type_list = MAX_cell_targets + MIN_cell_targets 
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
-  RUN_NAME = "tATLAS_Iter2" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"T":'tATLAS_i2_redo',
+  RUN_NAME = "tATLAS_Iter3" #Give a name for run folder to save any trained models
+  DATASET_NAMES = {"T":'tATLAS_i3_redo',
                    'h19RAMOS': 'bATLAS_MasterCompiled_reversed',
                    'DeltaRAMOS': 'bATLAS_MasterCompiled_reversed'} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True  # set true unless model is already trained and saved in output folder
+  run_model_training = False  # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
