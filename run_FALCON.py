@@ -63,13 +63,13 @@ def main():
 
   ################ STEP 3: LOAD AND SAVE PATH CONFIGURATION #############
   RUN_NAME = "tATLAS_Iter3" #Give a name for run folder to save any trained models
-  DATASET_NAMES = {"T":'tATLAS_i3_redo',
+  DATASET_NAMES = {"T":'tATLAS_i4_redo',
                    'h19RAMOS': 'bATLAS_MasterCompiled_reversed',
                    'DeltaRAMOS': 'bATLAS_MasterCompiled_reversed'} 
   #Name of the csv file, used to extract training data}
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = False  # set true unless model is already trained and saved in output folder
+  run_model_training = True  # set true unless model is already trained and saved in output folder
   run_optimization = True # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = False # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
