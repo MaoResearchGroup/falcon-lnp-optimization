@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
 import pickle
-import time
-
-from sklearn import pipeline
 from falcon_engine.utilities import print_slowly
 from .search_algorithms import OptimizationSearch
 import shap
@@ -70,9 +67,14 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
                 print(f"{param}: [BOUND NOT FOUND]")
         
         #max feature importance calculations for cell types 
+        # max feature importance calculations for all cell types
         shap_importances = []
         for cell_type in cell_type_list:
-            shap_imp = shap_analysis(RUN_NAME, cell_type, pipeline)
+            shap_imp = shap_analysis(
+                models[cell_type],
+                training_data[cell_type],
+                input_param_names
+            )
             shap_importances.append(shap_imp)
         max_feature_importance = pd.concat(shap_importances, axis=1).max(axis=1)
 
@@ -118,31 +120,13 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
 
     return optimized_formulations
 
-# Shap analysis run - outputs 
-def shap_analysis(RUN_NAME, cell_type,pipeline):
-    # store models in dictionary 
-    models = {}
-    input_scalars = {}
-    output_scalars = {}
+def shap_analysis(model, train_data, input_param_names):
 
-    models[cell_type] = pipeline['Model_Selection']['Best_Model']['Model']
-    output_scalars[cell_type] = pipeline['Data_preprocessing']['Output_Scaler']
-    input_scalars[cell_type] = pipeline['Data_preprocessing']['Scalers']
-    train_data = pipeline['Data_preprocessing']['X']
-    input_param_names = pipeline['Data_preprocessing']['Input_Params']
-
-    shap_values = {}
-
-    explainer = shap.Explainer(models[cell_type])
+    explainer = shap.Explainer(model)
     X = pd.DataFrame(train_data, columns=input_param_names)
-    shap_values[cell_type] = explainer(X)
-
-    shap_matrix = shap_values[cell_type].values  # shape: (n_samples, n_features)
-
-    # Compute mean absolute SHAP value per feature
+    shap_values = explainer(X)
+    shap_matrix = shap_values.values 
     mean_abs_shap = np.abs(shap_matrix).mean(axis=0)
-
-    # Create a pandas Series for easier viewing, matching input_param_names
     feature_importance = pd.Series(mean_abs_shap, index=input_param_names)
 
     return feature_importance
