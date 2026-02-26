@@ -57,49 +57,30 @@ class OptimizationSearch:
 
         print("SCALED SUGGESTION BOUNDS", self.norm_bounds)
 
-    # revised i-optimal to ensure the uncertainty is updated with each iteration, also make sure search bounds is within trained data
+    # I-optimal sampling strategy where uncertainty is updated with each iteration, and search bounds are within training data
+    # Use GP surrogate to estimate uncertainty of predictions, and select candidates that minimize average variance across the design space for ALL cell type models 
     def run_i_optimal(self, num_formulations):
-        num_formulations = num_formulations // 2
         self.selector.opt_method = 'i-optimal'
         print_slowly("\n--- STARTING i-optimal OPTIMIZATION ---")
 
         model = self.models[self.cell_type_list[0]]
-
         # Start with original training data
         X_train = self.training_data[self.cell_type_list[0]].copy()
-
-        # ---------- NEW: data-supported bounds ----------
         X_min = X_train.min(axis=0)
         X_max = X_train.max(axis=0)
-
-        # Small expansion margin (5% of observed range)
-        margin = 0.05 * (X_max - X_min)
-
+        margin = 0.05 * (X_max - X_min) # small expanison margin
         lb = X_min - margin
         ub = X_max + margin
-
-        # Clip to global (physical) bounds
+        #Clip to global (physical) bounds
         global_lb = np.array([b[0] for b in self.norm_bounds])
         global_ub = np.array([b[1] for b in self.norm_bounds])
 
         lb = np.maximum(lb, global_lb)
         ub = np.minimum(ub, global_ub)
         # ------------------------------------------------
-
         sampler = qmc.LatinHypercube(X_train.shape[1])
-
-        X_candidates = qmc.scale(
-            sampler.random(1000),
-            lb,
-            ub
-        )
-
-        X_eval = qmc.scale(
-            sampler.random(500),
-            lb,
-            ub
-        )
-
+        X_candidates = qmc.scale(sampler.random(1000),lb,ub)
+        X_eval = qmc.scale(sampler.random(500),lb,ub)
         count = 0
         local_tally = 0
         while local_tally < num_formulations and len(X_candidates) > 0:
@@ -107,116 +88,39 @@ class OptimizationSearch:
             if count >= 100:
                 print(f"Max (100) searches reached; {len(self.selector.optimized_formulations)} valid found.")
                 break
+            # Refit GP on current design for EACH cell type using multi-objective i-optimal
+            gps = {}
+            for cell in self.cell_type_list:
+                model = self.models[cell]
+                X_train_cell = self.training_data[cell]
+                gps[cell] = self._fit_gp_on_model(X_train_cell, model)
 
-            # 🔹 Refit GP on current design
-            gp = self._fit_gp_on_model(X_train, model)
-
-            # 🔹 I-optimal search under updated uncertainty
-            suggested_x, min_avg_var = self._i_optimal_search(
-                X_train, X_candidates, X_eval, model, gp
-            )
-
+            # Multi-objective I-optimal search
+            suggested_x, min_total_avg_var = self._i_optimal_search_multi(X_candidates, X_eval, gps)
             # Remove from candidate pool
             X_candidates = np.delete(
                 X_candidates,
                 np.where((X_candidates == suggested_x).all(axis=1))[0],
                 axis=0
             )
-
-            # Try to add point
             accepted = self.selector.try_add_point(suggested_x, verbose=True)
-
-            # 🔹 Only update training set if accepted
+            # Only update training set if accepted
             if accepted:
                 X_train = np.vstack([X_train, suggested_x])
                 local_tally += 1
-
         return pd.DataFrame(self.selector.optimized_formulations[-num_formulations:])
     
-    def run_i_optimal_minCT(self, num_formulations):
-        num_formulations = num_formulations // 2
-        self.selector.opt_method = 'i-optimal_minCT'
-        print_slowly("\n--- STARTING i-optimal OPTIMIZATION ---")
-
-        model = self.models[self.cell_type_list[1]]
-
-        # Start with original training data
-        X_train = self.training_data[self.cell_type_list[1]].copy()
-
-        # ---------- NEW: data-supported bounds ----------
-        X_min = X_train.min(axis=0)
-        X_max = X_train.max(axis=0)
-
-        # Small expansion margin (5% of observed range)
-        margin = 0.05 * (X_max - X_min)
-
-        lb = X_min - margin
-        ub = X_max + margin
-
-        # Clip to global (physical) bounds
-        global_lb = np.array([b[0] for b in self.norm_bounds])
-        global_ub = np.array([b[1] for b in self.norm_bounds])
-
-        lb = np.maximum(lb, global_lb)
-        ub = np.minimum(ub, global_ub)
-        # ------------------------------------------------
-
-        sampler = qmc.LatinHypercube(X_train.shape[1])
-
-        X_candidates = qmc.scale(
-            sampler.random(1000),
-            lb,
-            ub
-        )
-
-        X_eval = qmc.scale(
-            sampler.random(500),
-            lb,
-            ub
-        )
-
-        count = 0
-        local_tally = 0
-        while local_tally < num_formulations and len(X_candidates) > 0:
-            count += 1
-            if count >= 100:
-                print(f"Max (100) searches reached; {len(self.selector.optimized_formulations)} valid found.")
-                break
-
-            # 🔹 Refit GP on current design
-            gp = self._fit_gp_on_model(X_train, model)
-
-            # 🔹 I-optimal search under updated uncertainty
-            suggested_x, min_avg_var = self._i_optimal_search(
-                X_train, X_candidates, X_eval, model, gp
-            )
-
-            # Remove from candidate pool
-            X_candidates = np.delete(
-                X_candidates,
-                np.where((X_candidates == suggested_x).all(axis=1))[0],
-                axis=0
-            )
-
-            # Try to add point
-            accepted = self.selector.try_add_point(suggested_x, verbose=True)
-
-            # 🔹 Only update training set if accepted
-            if accepted:
-                X_train = np.vstack([X_train, suggested_x])
-                local_tally += 1
-
-        return pd.DataFrame(self.selector.optimized_formulations[-num_formulations:])
-
     def run_bayesian(self, num_formulations):
         self.selector.opt_method = 'BO'
         print_slowly("\n--- STARTING BAYESIAN OPTIMIZATION ---")
-        # pbounds = {f'param{i}': self.norm_bounds for i in range(1, len(self.input_param_names)+1)}
-        # print({f'param{i}': self.norm_bounds for i in range(1, len(self.input_param_names)+1)})
-        # pbounds = self.norm_bounds
 
         # Convert self.norm_bounds to a dictionary format expected by BayesianOptimization
         pbounds = {f'param{i+1}': self.norm_bounds[i] for i in range(len(self.input_param_names))}
+
+        #set bounds as the minimum of manual pbounds (above) or (-0.2, 1.2) in normalized space (intersecting points)
+        for key in pbounds:
+            pbounds[key] = (max(pbounds[key][0], -0.2), min(pbounds[key][1], 1.2))
+
         print("Parameter bounds (scaled):", pbounds)
         local_tally = 0
         while local_tally < num_formulations:
@@ -236,7 +140,11 @@ class OptimizationSearch:
     def run_dual_annealing(self, num_formulations):
         self.selector.opt_method = 'DA'
         print_slowly("\n--- STARTING DUAL ANNEALING OPTIMIZATION ---")
-        bounds = self.norm_bounds
+
+        bounds = [
+            (max(lower, -0.2), min(upper, 1.2))
+            for lower, upper in self.norm_bounds
+        ]
         
         local_tally = 0
         while local_tally < num_formulations:
@@ -257,9 +165,14 @@ class OptimizationSearch:
         self.selector.opt_method = 'NSGAII'
         print_slowly("\n--- STARTING NSGA-II OPTIMIZATION ---")
 
+        clipped_bounds = [
+        (max(l, -0.2), min(u, 1.2))
+        for l, u in self.norm_bounds
+        ]
+
         direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
         ordered_models = [self.models[cell] for cell in self.cell_type_list]
-        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=self.norm_bounds)
+        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=clipped_bounds)
 
         seed = 1
         max_seeds = 20
@@ -271,7 +184,7 @@ class OptimizationSearch:
 
             print(f"\n>>> Running NSGA-II with seed {seed}")
             algorithm = NSGA2(
-                pop_size=500,
+                pop_size=1000,
                 sampling=LHS(),
                 crossover=AdaptiveCrossover(base_prob=0.9, eta=15),
                 mutation=AdaptiveMutation(base_prob=0.1, eta=20),
@@ -281,7 +194,7 @@ class OptimizationSearch:
             res = minimize(
                 problem,
                 algorithm,
-                termination=('n_gen', 40),
+                termination=('n_gen', 500),
                 seed=seed,
                 save_history=False,
                 verbose=False
@@ -297,23 +210,7 @@ class OptimizationSearch:
         return pd.DataFrame(self.selector.optimized_formulations[-num_formulations:])
 
     def _greedy_selection(self, points, n_select, local_tally):
-        remaining = []
-        
-        for x in points: 
-            x = np.array(x)
-
-            thp1_model = self.models[self.cell_type_list[0]]
-            thp1_scaled = thp1_model.predict(x.reshape(1, -1))[0]
-            
-            thp1_raw = self.output_scalars[self.cell_type_list[0]].inverse_transform([[thp1_scaled]])[0][0]
-            
-            hepg2_model = self.models[self.cell_type_list[1]]
-            hepg2_scaled = hepg2_model.predict(x.reshape(1, -1))[0]
-            
-            hepg2_raw = self.output_scalars[self.cell_type_list[1]].inverse_transform([[hepg2_scaled]])[0][0]
-            
-            if thp1_raw >= 2.0 and hepg2_raw <= 4.5: #enforce certain prediction constraints
-                remaining.append(x.tolist())
+        remaining = [np.array(x).tolist() for x in points]
 
         for x in remaining:
             if self.selector.try_add_point(x, verbose = True):
@@ -351,46 +248,36 @@ class OptimizationSearch:
         gp = GaussianProcessRegressor(kernel=kernel, alpha=1e-6, normalize_y=True)
         gp.fit(X_train, y_pred)
         return gp
-
-    def _i_optimal_search(self, X_train, X_candidates, X_eval, pred_model, gp):
-        min_avg_var = np.inf
+    
+    def _i_optimal_search_multi(self, X_candidates, X_eval, gps):
+        min_total_avg_var = np.inf
         best_x = None
         for x in X_candidates:
-            X_aug = np.vstack([X_train] + self.selector.selected_normalized + [x])
-            y_aug = pred_model.predict(X_aug)
-
-            gp_temp = GaussianProcessRegressor(kernel=gp.kernel_, alpha=1e-6, normalize_y=True)
-            gp_temp.fit(X_aug, y_aug)
-
-            _, std = gp_temp.predict(X_eval, return_std=True)
-            avg_var = np.mean(std**2)
-            if avg_var < min_avg_var:
-                min_avg_var = avg_var
+            total_avg_var = 0
+            for cell, gp in gps.items():
+                pred_model = self.models[cell]
+                X_aug = np.vstack(
+                    [self.training_data[cell]]
+                    + self.selector.selected_normalized
+                    + [x]
+                )
+                y_aug = pred_model.predict(X_aug)
+                # Refit temporary GP
+                gp_temp = GaussianProcessRegressor(
+                    kernel=gp.kernel_,
+                    alpha=1e-6,
+                    normalize_y=True
+                )
+                gp_temp.fit(X_aug, y_aug)
+                # Evaluate updated uncertainty
+                _, std = gp_temp.predict(X_eval, return_std=True)
+                avg_var = np.mean(std ** 2)
+                total_avg_var += avg_var
+            if total_avg_var < min_total_avg_var:
+                min_total_avg_var = total_avg_var
                 best_x = x
-        return best_x, min_avg_var
+        return best_x, min_total_avg_var
     
-    # def _nsga2_search(self, num_formulations, max_cell_targets, min_cell_targets, seed):
-    #     print_slowly("\n--- STARTING NSGA-II OPTIMIZATION ---")
-
-    #     direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
-    #     ordered_models = [self.models[cell] for cell in self.cell_type_list]
-
-    #     problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=self.norm_bounds)
-    #     algorithm = NSGA2(
-    #         pop_size=500,
-    #         sampling=LHS(),
-    #         crossover=AdaptiveCrossover(base_prob=0.9, eta=15),
-    #         mutation=AdaptiveMutation(base_prob=0.1, eta=20),
-    #         eliminate_duplicates=True
-    #     )
-
-    #     res = minimize(problem, algorithm, termination=('n_gen', 250), seed=seed, save_history=True, verbose=True)
-
-    #     front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
-    #     pareto_solutions = res.pop.get("X")[front]
-
-    #     return self._greedy_selection(pareto_solutions, num_formulations)
-
     def _objective_fcn_BO(self, all_evaluations, **params):
         x = list(params.values())
         model = self.models[self.cell_type_list[0]]

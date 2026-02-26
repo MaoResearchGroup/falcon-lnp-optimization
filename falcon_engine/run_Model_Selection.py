@@ -7,6 +7,8 @@ from copy import deepcopy
 from falcon_engine.utilities import print_slowly
 
 """
+These functions were adapted from our previously published pipeline (https://pubs.acs.org/doi/10.1021/acsnano.4c07615), 
+  using procedures for hyperparameter optimization and nested cross-validation from the Aspuru-Guzik group's GitHub repository.
 Function that:
 - runs the NESTED_CV for a desired cell typeand model panel for a given number of folds
 - prints status and progress of NESTED_CV

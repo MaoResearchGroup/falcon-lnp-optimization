@@ -8,6 +8,11 @@ import os
 from falcon_engine.utilities import print_slowly
 
 
+"""
+These functions were adapted from our previously published pipeline (https://pubs.acs.org/doi/10.1021/acsnano.4c07615), 
+using procedures for hyperparameter optimization and nested cross-validation from the Aspuru-Guzik group's GitHub repository.
+"""
+
 def get_learning_curve(pipeline, refined = False, NUM_ITER =5, num_splits =5, num_sizes= 50):
 
     start_time = time.time()

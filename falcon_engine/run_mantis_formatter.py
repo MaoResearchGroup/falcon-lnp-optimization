@@ -60,14 +60,14 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     ws = wb["Formulations"] 
 
     param_rows = {
-    "Ionizable_Lipid": 54,
-    "Helper_Lipid": 55,
+    "Ionizable_lipid": 54,
+    "Helper_lipid": 55,
     "Chol": 56,
     "PEG": 57,
     }
     volume_rows = {
-        "Ionizable_Lipid": 63,
-        "Helper_Lipid": 64,
+        "Ionizable_lipid": 63,
+        "Helper_lipid": 64,
         "Chol": 65,
         "PEG": 66,
         "EtOH": 67,
@@ -90,15 +90,15 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
         stock_map[name] = {}
         for col in formulation_cols:
             conc = ws.cell(row=row, column=col).value
-            if name == "Ionizable_Lipid":
+            if name == "Ionizable_lipid":
                 stock_map[name][conc] = f"{IL_name}_{conc}mg_ml"
-            elif name == "Helper_Lipid":
+            elif name == "Helper_lipid":
                 stock_map[name][conc] = f"{HL_name}_{conc}mg_ml"
             else:
                 stock_map[name][conc] = f"{name}_{conc}mg_ml"
 
     # 2. Flatten and deduplicate column names (preserve order)
-    for name in ["Ionizable_Lipid", "Helper_Lipid", "Chol", "PEG"]:
+    for name in ["Ionizable_lipid", "Helper_lipid", "Chol", "PEG"]:
         for conc, label in stock_map[name].items():
             if label not in unique_headers:
                 unique_headers.append(label)
@@ -113,16 +113,16 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
         row_dict = {}
 
         # Get volumes by stock conc
-        for name in ["Ionizable_Lipid", "Helper_Lipid", "Chol", "PEG"]:
+        for name in ["Ionizable_lipid", "Helper_lipid", "Chol", "PEG"]:
             stock = ws.cell(row=param_rows[name], column=col).value
             raw_val = ws.cell(row=volume_rows[name], column=col).value
             try:
                 vol = float(raw_val)
             except (TypeError, ValueError):
                 vol = 0.0
-            if name == "Ionizable_Lipid":
+            if name == "Ionizable_lipid":
                 label = f"{IL_name}_{stock}mg_ml"
-            elif name == "Helper_Lipid":
+            elif name == "Helper_lipid":
                 label = f"{HL_name}_{stock}mg_ml"
             else:
                 label = f"{name}_{stock}mg_ml"

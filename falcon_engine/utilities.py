@@ -5,7 +5,7 @@ import sys
 import time 
 import os
 
-def init_pipeline(pipeline_path, input_param_names, RUN_NAME, cell, param_type, data_file_path, prefix, RLU_floor, N_CV, model_list ):
+def init_pipeline(pipeline_path, input_param_names, RUN_NAME, cell, param_type, data_file_path, prefix, output_floor, N_CV, model_list ):
     
     print_slowly('\n\n########## INITIALIZING MODEL TRAINING PIPELINE ##############\n\n')
     #Saving/Loading
@@ -27,7 +27,7 @@ def init_pipeline(pipeline_path, input_param_names, RUN_NAME, cell, param_type, 
                         'Formula_param_type': param_type,
                         'Input_Params': input_param_names,
                         'prefix' : prefix,
-                        'RLU_floor':RLU_floor, 
+                        'output_floor':output_floor, 
                         'Scalers': {},
                         'Output_Scaler': None,
                         'X' : None, 
@@ -85,7 +85,7 @@ def extract_training_data(pipeline):
     data_path = pipeline['Data_preprocessing']['Data_Path']
     input_params = pipeline['Data_preprocessing']['Input_Params']
     prefix = pipeline['Data_preprocessing']['prefix']
-    RLU_floor = pipeline['Data_preprocessing']['RLU_floor']
+    output_floor = pipeline['Data_preprocessing']['output_floor']
     
     #Extract datafile
     df = pd.read_csv(data_path)
@@ -96,8 +96,8 @@ def extract_training_data(pipeline):
 
     processed_data = raw_data.copy()
 
-    #floor all RLU values below the noise
-    processed_data.loc[processed_data[prefix + cell_type] < RLU_floor, prefix + cell_type] = RLU_floor 
+    #floor all output values below the noise
+    processed_data.loc[processed_data[prefix + cell_type] < output_floor, prefix + cell_type] = output_floor 
 
     print("Input Parameters used:", input_params)
     print("Number of Datapoints used:", len(processed_data.index))
@@ -146,9 +146,9 @@ def startup_banner():
     print_slowly(banner, delay=0.0015)
 
     meta_info = """
-Author(s)    : Wu Han (Enoch) Toh et al.
-Version      : FALCON v1.0
-Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Selective LNP Design
+Author(s)    : Wu Han (Enoch) Toh, Leonardo Cheng et al.
+Version      : FALCON v2.0
+Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Sgelective LNP Design
 License      : MIT License
 Repository   : https://github.com/MaoResearchGroup/falcon-lnp-optimization
 Affiliation  : Mao Research Group, Institute for NanoBioTechnology (INBT), Johns Hopkins University  
@@ -158,11 +158,13 @@ Affiliation  : Mao Research Group, Institute for NanoBioTechnology (INBT), Johns
     print(meta_info)
     steps = [
         "Initializing FALCON Engine...",
-        "Ready to launch 🚀"
+        "Perching...",
+        "Diving....",
+        "FALCON is in flight!"
     ]
 
     for step in steps:
         print_slowly(step, delay=0.04)
-        time.sleep(0.3)
+        time.sleep(0.2)
 
-    time.sleep(0.5)  # Pause before next action
+    time.sleep(0.3)  # Pause before next action

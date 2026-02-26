@@ -28,6 +28,8 @@ from falcon_engine.utilities import print_slowly
 class NESTED_CV:
   
     """
+    These functions were adapted from our previously published pipeline (https://pubs.acs.org/doi/10.1021/acsnano.4c07615), 
+      using procedures for hyperparameter optimization and nested cross-validation from the Aspuru-Guzik group's GitHub repository.
     NESTED_CV Class:
     - based on a pipeline developed for long acting injectible (LAI) drug delivey systems by the Aspuru-Guzik Group https://github.com/aspuru-guzik-group/long-acting-injectables
     - once model type is selected, NEST_CV will be conducted, data is split as follows:
@@ -36,9 +38,7 @@ class NESTED_CV:
           - inner loop (hyperparameter optimization) - Final K fold split of the remaining 68% training set for HP hoptimization
     - prints progress and reults at the end of each loop
     - configures a pandas dataframe with the reults of the NESTED_CV
-    - fits and trains the best model based on the results of the NESTED_CV
-    - Note: For model selection, random states of outer cross-validation loops have been set for accurate model comparisions, 
-    however, random states of inner cross-validation loops have not been set leading to the optimization of different model architectures which may lead to differnt downstream results. 
+    - fits and trains the best model on all the training data based on the results of the NESTED_CV
     """
 
     #Functions here
