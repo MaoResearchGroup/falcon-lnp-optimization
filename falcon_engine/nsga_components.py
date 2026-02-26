@@ -7,7 +7,6 @@ from pymoo.core.crossover import Crossover
 from pymoo.operators.crossover.sbx import SimulatedBinaryCrossover
 from pymoo.operators.mutation.pm import PolynomialMutation
 
-
 class FormulationOptimizationProblem(Problem):
     def __init__(self, direction, input_param_names, *xgb_models, pbounds):
         # Unpack parameter-specific bounds

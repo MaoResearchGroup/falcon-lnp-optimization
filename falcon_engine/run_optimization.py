@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pickle
 import time
+
+from sklearn import pipeline
 from falcon_engine.utilities import print_slowly
-
-
 from .search_algorithms import OptimizationSearch
 import shap
 
@@ -17,22 +17,19 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
     optimized_formulations = pd.DataFrame()
 
     for opt_method in opt_methods:
-
         print_slowly('\n######### DE NOVO FORMULATION SEARCH #####')
         print_slowly(f"Optimization Algorithm: {opt_method}")
         print_slowly(f"Number of Formulations: {num_formulations}")
 
-
         if opt_method in ['DA', 'BO']:
             print_slowly(f"Max Cell Target: {MAX_cell_targets[0]}")
-        else:
+        elif opt_method == 'NSGAII':
             print_slowly(f"Max Cell Targets: {MAX_cell_targets}")
             print_slowly(f"Min Cell Targets: {MIN_cell_targets}")
-
-        start_time = time.time()
+        else:   
+            print_slowly(f"Minimizing variance across models for: {MAX_cell_targets + MIN_cell_targets}")
 
         # load the model and scalers 
-        # store models in dictionary 
         cell_type_list = MAX_cell_targets + MIN_cell_targets # we want to make single objective predictions for MAX_cell_targfets
         models = {}
         input_scalars = {}
@@ -52,12 +49,10 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
             training_data[cell_type] = pipeline['Data_preprocessing']['X']
             input_param_names = pipeline['Data_preprocessing']['Input_Params']
 
-
             # Scale bounds for search algorithms
             scaler = input_scalars[cell_type]
             cell_scaled_bounds = []
             
-
             for param in input_param_names:
                 raw_min, raw_max = raw_bounds[param]
                 scaled_min = scaler[param].transform([[raw_min]])[0][0]
@@ -75,9 +70,11 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
                 print(f"{param}: [BOUND NOT FOUND]")
         
         #max feature importance calculations for cell types 
-        shap_ct1 = shap_analysis(RUN_NAME,cell_type_list[0],pipeline)
-        shap_ct2 = shap_analysis(RUN_NAME,cell_type_list[1],pipeline)
-        max_feature_importance = np.maximum(shap_ct1, shap_ct2)
+        shap_importances = []
+        for cell_type in cell_type_list:
+            shap_imp = shap_analysis(RUN_NAME, cell_type, pipeline)
+            shap_importances.append(shap_imp)
+        max_feature_importance = pd.concat(shap_importances, axis=1).max(axis=1)
 
         #initialize search class
         if (not_initiliazed): 
@@ -92,7 +89,6 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
                                             diversity_threshold, 
                                             opt_method, 
                                             scaled_bounds[cell_type])
-            
 
         # Run optimization for each method
         if opt_method == "DA":

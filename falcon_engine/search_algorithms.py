@@ -7,19 +7,11 @@ from bayes_opt import BayesianOptimization
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from scipy.stats import qmc
-from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.operators.sampling.lhs import LHS
-from pymoo.core.mutation import Mutation
-from pymoo.core.crossover import Crossover
-from pymoo.operators.crossover.sbx import SimulatedBinaryCrossover
-from pymoo.operators.mutation.pm import PolynomialMutation
 from falcon_engine.utilities import print_slowly
-import shap
-import pickle
-import time
 
 # --- Helper Classes & Functions ---
 from .diverse_selector import DiverseValidSelector

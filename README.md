@@ -15,7 +15,7 @@ Repository for the paper "FALCON: Closed Loop Multi-Objective Optimization of Li
   
 - **Modular architecture**. Framework can be applied for different cell types, input parameters, and optimization goals.
   
-<img src="0214_26_Schematic.jpg" alt="FALCON Pipeline Schematic" width="1000"/>
+<img src="FALCON_Schematic.jpg" alt="FALCON Pipeline Schematic" width="1000"/>
 <strong>Figure 1. Schematic Overview of FALCON Workflow</strong>
 
 

@@ -8,6 +8,7 @@ import pickle
 from falcon_engine.utilities import print_slowly
 from falcon_engine.run_mantis_formatter import run_mantis_formatter_pipeline
 import warnings
+import time
 
 warnings.filterwarnings("ignore")
 
@@ -33,7 +34,6 @@ run_FALCON script
 """
 
 def main():
-
   ############### STEP 1: SEARCH CONFIGURATION #########################
   
   opt_methods = ['DA','BO','NSGAII','i-optimal'] # DA, BO, NSGAII, i-optimal
@@ -72,6 +72,9 @@ def main():
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
+  pipeline_start_time = time.time()
+  training_runtime = None
+  optimization_runtime = None
   data_file_path = f'datasets/{DATASET_NAME}.csv' #Path to the dataset to be used for training
 
   # Input_Params (features to be used for model training and prediction) 
@@ -79,7 +82,7 @@ def main():
   input_param_names = ['NP_ratio','IL+HL','HL_IL+HL','PEG_PEG+Chol']
 
   if run_model_training == True:  
-
+    training_start = time.time()
     for c in cell_type_list:   #Loop through model training for each cell type of interest
       pipeline_path = f'output/{RUN_NAME}/{c}/Pipeline_dict.pkl'
       #Initialize new model pipeline
@@ -97,8 +100,10 @@ def main():
       pipeline_dict, _, _, _ = run_Model_Selection(pipeline_dict)
       pipeline_dict = learning_curve.get_learning_curve(pipeline_dict, refined = False)
       save_pipeline(pipeline=pipeline_dict, path = pipeline_path, step = 'FINAL SAVE')  
+    training_runtime = time.time() - training_start
   
   if run_optimization == True:
+    optimization_start = time.time()
     optimized_formulations = pd.DataFrame()
     optimized_formulations= run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, MIN_cell_targets, RUN_NAME, diversity_threshold,
                                                   raw_suggestion_bounds)
@@ -143,6 +148,19 @@ def main():
     df_combined = pd.concat([df_existing, df_new_full], ignore_index=True)
     df_combined.to_csv(output_file_path, index=False)
     print(f"Optimized formulations saved to {output_file_path}")
+    optimization_runtime = time.time() - optimization_start
+
+  pipeline_runtime = time.time() - pipeline_start_time
+  print_slowly("\n\n========== PIPELINE RUNTIME SUMMARY ==========")
+
+  if training_runtime is not None:
+      print_slowly(f"Model Training: {training_runtime/60:.2f} minutes")
+
+  if optimization_runtime is not None:
+      print_slowly(f"Optimization: {optimization_runtime/60:.2f} minutes")
+
+  print_slowly(f"Total Runtime: {pipeline_runtime/60:.2f} minutes")
+  print_slowly("==============================================\n")
 
   if run_mantis_formatter == True:
     with open(f'output/{RUN_NAME}/raw_suggested_formulations.pkl', 'rb') as f:
