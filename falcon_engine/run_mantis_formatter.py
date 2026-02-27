@@ -24,8 +24,8 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
 
     wb = openpyxl.load_workbook(dst)
     ws = wb["Formulations"] 
-    reversed_x = optimized_formulations[0]
-    opt_methods = optimized_formulations[2]
+    reversed_x = optimized_formulations[input_param_names].values.tolist()
+    opt_methods = optimized_formulations["opt_method"].tolist()
 
     #take user input for IL and HL names
     IL_name = input("Enter the name of your Ionizable Lipid used (IL)\n(Choose SM102, Dlin, or ALC0315): ")

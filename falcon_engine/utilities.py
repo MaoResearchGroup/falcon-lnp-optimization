@@ -148,7 +148,7 @@ def startup_banner():
     meta_info = """
 Author(s)    : Wu Han (Enoch) Toh, Leonardo Cheng et al.
 Version      : FALCON v2.0
-Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Sgelective LNP Design
+Description  : Machine Learning-Driven Multi-Objective Optimization Engine for Cell-Selective LNP Design
 License      : MIT License
 Repository   : https://github.com/MaoResearchGroup/falcon-lnp-optimization
 Affiliation  : Mao Research Group, Institute for NanoBioTechnology (INBT), Johns Hopkins University  

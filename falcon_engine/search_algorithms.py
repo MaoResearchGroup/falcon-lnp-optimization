@@ -80,15 +80,34 @@ class OptimizationSearch:
             if count >= 100:
                 print(f"Max (100) searches reached; {len(self.selector.optimized_formulations)} valid found.")
                 break
-            # Refit GP on current design for EACH cell type using multi-objective i-optimal
+            # Fit GP once per cell type (INCLUDING previously selected points)
             gps = {}
-            for cell in self.cell_type_list:
-                model = self.models[cell]
-                X_train_cell = self.training_data[cell]
-                gps[cell] = self._fit_gp_on_model(X_train_cell, model)
+            base_eval_var = {}
 
-            # Multi-objective I-optimal search
-            suggested_x, min_total_avg_var = self._i_optimal_search_multi(X_candidates, X_eval, gps)
+            for cell in self.cell_type_list:
+
+                # include sequentially selected points
+                X_train_cell = np.vstack(
+                    [self.training_data[cell]]
+                    + self.selector.selected_normalized
+                )
+
+                model = self.models[cell]
+                gp = self._fit_gp_on_model(X_train_cell, model)
+
+                gps[cell] = gp
+
+                # Precompute base variance over evaluation grid
+                _, std_eval = gp.predict(X_eval, return_std=True)
+                base_eval_var[cell] = std_eval ** 2
+
+            # Fast closed-form I-optimal search
+            suggested_x, min_total_avg_var = self._i_optimal_search_multi_fast(
+                X_candidates,
+                X_eval,
+                gps,
+                base_eval_var
+            )
             # Remove from candidate pool
             X_candidates = np.delete(
                 X_candidates,
@@ -164,7 +183,7 @@ class OptimizationSearch:
 
         direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
         ordered_models = [self.models[cell] for cell in self.cell_type_list]
-        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=clipped_bounds)
+        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=clipped_bounds, logger = self) 
 
         seed = 1
         max_seeds = 20
@@ -191,9 +210,6 @@ class OptimizationSearch:
                 save_history=False,
                 verbose=False
             )
-            population_X = res.pop.get("X")
-            for x in population_X:
-                self.log_evaluation(x)
 
             front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
             pareto_solutions = res.pop.get("X")[front]
@@ -244,34 +260,41 @@ class OptimizationSearch:
         gp.fit(X_train, y_pred)
         return gp
     
-    def _i_optimal_search_multi(self, X_candidates, X_eval, gps):
+    def _i_optimal_search_multi_fast(self, X_candidates, X_eval, gps, base_eval_var):
+
         min_total_avg_var = np.inf
         best_x = None
+
         for x in X_candidates:
+
             self.log_evaluation(x)
+
             total_avg_var = 0
+            x_reshaped = x.reshape(1, -1)
+
             for cell, gp in gps.items():
-                pred_model = self.models[cell]
-                X_aug = np.vstack(
-                    [self.training_data[cell]]
-                    + self.selector.selected_normalized
-                    + [x]
+
+                kernel = gp.kernel_
+                noise = gp.alpha if np.isscalar(gp.alpha) else np.mean(gp.alpha)
+
+                # variance at candidate
+                _, std_star = gp.predict(x_reshaped, return_std=True)
+                var_star = std_star[0] ** 2
+
+                # kernel between eval points and candidate
+                k_eval_star = kernel(X_eval, x_reshaped).flatten()
+
+                # closed-form updated variance
+                var_new = base_eval_var[cell].flatten() - (
+                    (k_eval_star ** 2) / (var_star + noise)
                 )
-                y_aug = pred_model.predict(X_aug)
-                # Refit temporary GP
-                gp_temp = GaussianProcessRegressor(
-                    kernel=gp.kernel_,
-                    alpha=1e-6,
-                    normalize_y=True
-                )
-                gp_temp.fit(X_aug, y_aug)
-                # Evaluate updated uncertainty
-                _, std = gp_temp.predict(X_eval, return_std=True)
-                avg_var = np.mean(std ** 2)
-                total_avg_var += avg_var
+
+                total_avg_var += np.mean(var_new)
+
             if total_avg_var < min_total_avg_var:
                 min_total_avg_var = total_avg_var
                 best_x = x
+
         return best_x, min_total_avg_var
     
     def _objective_fcn_BO(self, **params):

@@ -42,12 +42,12 @@ def main():
 
   raw_suggestion_bounds = {
         'NP_ratio': (2, 20),
-        'PEG_(Chol+PEG)': (0.1, 20),
-        '(IL+HL)':(20,90),
-        'HL_(IL+HL)':(0,80),
+        'PEG_PEG+Chol': (0.1, 20),
+        'IL+HL':(20,90),
+        'HL_IL+HL':(0,80),
         }
     
-  diversity_threshold = 0.075 #SHAP-weighted diversity threshold: how diverse do you want your suggestions to be? ([0,1], 1 is more diverse)
+  diversity_threshold = 0.05 #SHAP-weighted diversity threshold: how diverse do you want your suggestions to be? ([0,1], 1 is more diverse)
   # can use cooling schedule to ecnourage high exploration in early iterations 
   #ex. iter 1: 0.15, iter 2: 0.10, iter 3: 0.075, iter 4: 0.05, etc... 
 
@@ -67,8 +67,8 @@ def main():
   DATASET_NAME = 'Demo_Norm_RAMOS_THP1_Single_Dual_Objective_4ITER_MC3_DSPC' #Name of the csv file, used to extract training data
 
   ################ STEP 4: PIPELINE COMPONENTS CONFIGURATION #############
-  run_model_training = True # set true unless model is already trained and saved in output folder
-  run_optimization = True  # set true unless de novo formulation generation is not desired 
+  run_model_training = False # set true unless model is already trained and saved in output folder
+  run_optimization = False  # set true unless de novo formulation generation is not desired 
   run_mantis_formatter = True # set true if you want to format the optimized formulations for MANTIS (liquid handler) input
 
   ########################################################################
