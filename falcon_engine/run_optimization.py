@@ -95,15 +95,19 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
         # Run optimization for each method
         if opt_method == "DA":
             optimizer.opt_method = opt_method
+            optimizer.all_evaluations = []
             suggested_LNPs = optimizer.run_dual_annealing(num_formulations)
         elif opt_method =="BO":
             optimizer.opt_method = opt_method
+            optimizer.all_evaluations = []
             suggested_LNPs = optimizer.run_bayesian(num_formulations)
         elif opt_method =="i-optimal":
             optimizer.opt_method = opt_method
+            optimizer.all_evaluations = []
             suggested_LNPs = optimizer.run_i_optimal(num_formulations)
         elif opt_method =="NSGAII":
             optimizer.opt_method = opt_method
+            optimizer.all_evaluations = []
             suggested_LNPs = optimizer.run_nsga2(num_formulations, 
                                                 MAX_cell_targets, 
                                                 MIN_cell_targets)
@@ -117,6 +121,13 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
         suggested_LNPs.to_csv(f'output/{RUN_NAME}/{opt_method}_valid_suggestions.csv', index=False)
         optimized_formulations = pd.concat([optimized_formulations, suggested_LNPs], ignore_index=True)
         print(optimized_formulations)
+
+        # Save full evaluation history
+        all_eval_df = pd.DataFrame(optimizer.all_evaluations)
+        all_eval_df.to_csv(
+            f'output/{RUN_NAME}/{opt_method}_all_evaluations.csv',
+            index=False
+        )
 
     return optimized_formulations
 

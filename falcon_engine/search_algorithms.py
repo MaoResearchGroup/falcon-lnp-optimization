@@ -117,7 +117,7 @@ class OptimizationSearch:
         local_tally = 0
         while local_tally < num_formulations:
             optimizer = BayesianOptimization(
-                f=lambda **params: self._objective_fcn_BO(self.all_evaluations, **params),
+                f=lambda **params: self._objective_fcn_BO(**params),
                 pbounds=pbounds,
                 verbose=2
             )
@@ -141,7 +141,7 @@ class OptimizationSearch:
         local_tally = 0
         while local_tally < num_formulations:
             result = dual_annealing(
-                func=self._objective_fcn_DA(self.all_evaluations),
+                func=self._objective_fcn_DA(),
                 bounds=bounds,
                 maxiter=100,
                 initial_temp=20000, 
@@ -191,6 +191,9 @@ class OptimizationSearch:
                 save_history=False,
                 verbose=False
             )
+            population_X = res.pop.get("X")
+            for x in population_X:
+                self.log_evaluation(x)
 
             front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
             pareto_solutions = res.pop.get("X")[front]
@@ -245,6 +248,7 @@ class OptimizationSearch:
         min_total_avg_var = np.inf
         best_x = None
         for x in X_candidates:
+            self.log_evaluation(x)
             total_avg_var = 0
             for cell, gp in gps.items():
                 pred_model = self.models[cell]
@@ -270,28 +274,32 @@ class OptimizationSearch:
                 best_x = x
         return best_x, min_total_avg_var
     
-    def _objective_fcn_BO(self, all_evaluations, **params):
+    def _objective_fcn_BO(self, **params):
         x = list(params.values())
         model = self.models[self.cell_type_list[0]]
         y = model.predict(np.array(x).reshape(1, -1))[0]
 
-        reversed_y = self.output_scalars[self.cell_type_list[0]].inverse_transform([[y]])[0][0]
-        entry = {self.input_param_names[i]: x[i] for i in range(len(x))}
-        entry['Predicted_LnRLU'] = reversed_y
-        all_evaluations.append(entry)
+        self.log_evaluation(x)
 
         return y
 
-    def _objective_fcn_DA(self, all_evaluations):
+    def _objective_fcn_DA(self):
         def wrapped(x):
             model = self.models[self.cell_type_list[0]]
             y = model.predict(np.array(x).reshape(1, -1))[0]
 
-            reversed_y = self.output_scalars[self.cell_type_list[0]].inverse_transform([[y]])[0][0]
-            entry = {self.input_param_names[i]: x[i] for i in range(len(x))}
-            entry['Predicted_LnRLU'] = reversed_y
-            all_evaluations.append(entry)
+            self.log_evaluation(x)
 
             return -y
         return wrapped
 
+    def log_evaluation(self, x):
+        entry = {name: x[i] for i, name in enumerate(self.input_param_names)}
+
+        for cell_type in self.cell_type_list:
+            y = self.models[cell_type].predict(np.array(x).reshape(1, -1))
+            y_reversed = self.output_scalars[cell_type]\
+                .inverse_transform(y.reshape(-1, 1))[0][0]
+            entry[f"Pred_nLnLE_{cell_type}"] = y_reversed
+
+        self.all_evaluations.append(entry)
