@@ -8,6 +8,10 @@ from openpyxl.utils import get_column_letter
 import pandas as pd
 
 def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formulations): 
+    '''
+    Function to format optimized formulations for MANTIS liquid handler input. 
+    Completes first step of copying the template Excel file, then fills in the formulation parameters.
+    '''
     print_slowly("\n\n--- FORMATTING OPTIMIZED FORMULATIONS FOR MANTIS ---")
 
     # Define source and destination file paths

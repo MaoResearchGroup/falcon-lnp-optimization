@@ -90,7 +90,8 @@ def run_optimization_pipeline(opt_methods, num_formulations, MAX_cell_targets, M
                                             max_feature_importance, 
                                             diversity_threshold, 
                                             opt_method, 
-                                            scaled_bounds[cell_type])
+                                            scaled_bounds[cell_type], 
+                                            RUN_NAME)
 
         # Run optimization for each method
         if opt_method == "DA":

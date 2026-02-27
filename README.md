@@ -116,7 +116,7 @@ python run_FALCON.py
 
 ### Demo 
 - run_FALCON.py is configured with demo dataset from the manuscript (follow above instructions to run)  
-- Demo dataset full pipeline (2 cell types, 3 search algorithms) runtime: ~20 minutes
+- Demo dataset full pipeline (2 cell types, 4 search algorithms) runtime: ~17 minutes (6 minutes model training, 11 minutes optimization search)
 - Sample output for demo can be found in `output/sample_demo`
 
 ### 📊 Interactive Analysis 

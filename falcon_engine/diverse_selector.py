@@ -3,6 +3,10 @@ import pandas as pd
 from falcon_engine.utilities import print_slowly
 
 class DiverseValidSelector:
+    '''
+    Class to manage selection of optimized formulations with diversity and validity constraints. 
+    Acts as post-professing filter for candidate formulations proposed by optimization algorithms. 
+    '''
     def __init__(self, input_param_names, models, input_scalars, output_scalars,
                  cell_type_list, feature_importance, training_data, diversity_threshold, opt_method=""):
         self.input_param_names = input_param_names

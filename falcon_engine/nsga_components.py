@@ -8,7 +8,11 @@ from pymoo.operators.crossover.sbx import SimulatedBinaryCrossover
 from pymoo.operators.mutation.pm import PolynomialMutation
 
 class FormulationOptimizationProblem(Problem):
-    def __init__(self, direction, input_param_names, *xgb_models, pbounds, logger = None):
+    '''
+    NSGA-II Components for Multi-Objective Formulation Optimization. 
+    Defines custom problem and operator classes used in FALCON pipeline. 
+    '''
+    def __init__(self, direction, input_param_names, *xgb_models, pbounds):
         # Unpack parameter-specific bounds
         xl_list = np.array([low for (low, high) in pbounds])
         xu_list = np.array([high for (low, high) in pbounds])
@@ -21,7 +25,6 @@ class FormulationOptimizationProblem(Problem):
             xu=xu_list
         )
 
-        self.logger = logger
         self.direction = direction
         self.input_param_names = input_param_names
         self.models = list(xgb_models)
@@ -32,11 +35,6 @@ class FormulationOptimizationProblem(Problem):
             pred = model.predict(X)
             F.append(self.direction[i] * pred)
         out["F"] = np.column_stack(F)
-
-        # LOG ALL EVALUATIONS
-        if self.logger is not None:
-            for x in X:
-                self.logger.log_evaluation(x)
 
 
 class AdaptiveMutation(Mutation):

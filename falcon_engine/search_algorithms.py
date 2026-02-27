@@ -1,5 +1,7 @@
 # optimization_search.py
 
+import pickle
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import dual_annealing
@@ -20,8 +22,14 @@ import numpy as np
 import pandas as pd
 
 class OptimizationSearch:
+    '''
+    Central optimization engine for FALCON formulation discovery. 
+    Executes optimization using selected search strategy, logs surrogate evaluations and tracks pareto front. 
+    Applies feasibility + diversity filterign via DiverseValidselector class. 
+    Exports optimization results for downstram analysis. 
+    '''
     def __init__(self, models, input_scalars, output_scalars, training_data, input_param_names,
-                 cell_type_list, feature_importance, diversity_threshold, opt_method, norm_bounds):
+                 cell_type_list, feature_importance, diversity_threshold, opt_method, norm_bounds, RUN_NAME):
 
         self.models = models
         self.input_scalars = input_scalars
@@ -34,6 +42,7 @@ class OptimizationSearch:
         self.opt_method = opt_method
         self.norm_bounds = norm_bounds
         self.all_evaluations = []
+        self.RUN_NAME = RUN_NAME
 
         self.selector = DiverseValidSelector(
             input_param_names=self.input_param_names,
@@ -162,7 +171,7 @@ class OptimizationSearch:
             result = dual_annealing(
                 func=self._objective_fcn_DA(),
                 bounds=bounds,
-                maxiter=100,
+                maxiter=100, #simplify for demo
                 initial_temp=20000, 
                 visit=2.8
             )
@@ -183,11 +192,16 @@ class OptimizationSearch:
 
         direction = [-1] * len(max_cell_targets) + [1] * len(min_cell_targets)
         ordered_models = [self.models[cell] for cell in self.cell_type_list]
-        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=clipped_bounds, logger = self) 
+        problem = FormulationOptimizationProblem(direction, self.input_param_names, *ordered_models, pbounds=clipped_bounds) 
 
         seed = 1
-        max_seeds = 20
+        max_seeds = 10
         local_tally = 0
+
+        all_histories = []
+        all_pareto_F = []
+        all_pareto_X = []
+
         while seed <= max_seeds:
 
             if local_tally >= num_formulations:
@@ -195,7 +209,7 @@ class OptimizationSearch:
 
             print(f"\n>>> Running NSGA-II with seed {seed}")
             algorithm = NSGA2(
-                pop_size=1000,
+                pop_size=1000, 
                 sampling=LHS(),
                 crossover=AdaptiveCrossover(base_prob=0.9, eta=15),
                 mutation=AdaptiveMutation(base_prob=0.1, eta=20),
@@ -205,11 +219,15 @@ class OptimizationSearch:
             res = minimize(
                 problem,
                 algorithm,
-                termination=('n_gen', 500),
+                termination=('n_gen', 250), # simplify for demo
                 seed=seed,
-                save_history=False,
-                verbose=False
+                save_history=True,
+                verbose=True
             )
+
+            all_histories.append(res.history)
+            all_pareto_F.append(res.F)
+            all_pareto_X.append(res.X)
 
             front = NonDominatedSorting().do(res.pop.get("F"), only_non_dominated_front=True)
             pareto_solutions = res.pop.get("X")[front]
@@ -218,6 +236,59 @@ class OptimizationSearch:
             seed += 1
 
         print(f"Finished NSGA-II: total selected = {len(self.selector.optimized_formulations)}")
+        print_slowly("Exporting results...")
+
+        all_F = np.vstack([
+            np.array([ind.F for ind in gen.pop])
+            for history in all_histories
+            for gen in history
+        ])
+
+        all_X = np.vstack([
+            gen.pop.get("X")
+            for history in all_histories
+            for gen in history
+        ])
+
+        # Combine final Pareto fronts from each seed
+        combined_pareto_F = np.vstack(all_pareto_F)
+        combined_pareto_X = np.vstack(all_pareto_X)
+
+        # Recompute global non-dominated front
+        nds = NonDominatedSorting()
+        front = nds.do(combined_pareto_F, only_non_dominated_front=True)
+
+        global_pareto_F = combined_pareto_F[front]
+        global_pareto_X = combined_pareto_X[front]
+
+        export_dict = {
+            'pareto_F': global_pareto_F,
+            'all_F': all_F,
+            'cell_type_names': self.cell_type_list,
+            'pareto_X': global_pareto_X,
+            'direction': direction
+        }
+
+        with open(f'output/{self.RUN_NAME}/NSGAII_results.pkl', "wb") as f:
+            pickle.dump(export_dict, f)
+
+        for cell_type in self.cell_type_list:
+            model = self.models[cell_type]
+            output_scaler = self.output_scalars[cell_type]
+
+            y_preds = model.predict(all_X)
+            y_reversed = output_scaler.inverse_transform(
+                y_preds.reshape(-1, 1)
+            ).flatten()
+
+            for i, x in enumerate(all_X):
+                if i >= len(self.all_evaluations):
+                    self.all_evaluations.append(
+                        {self.input_param_names[j]: x[j] for j in range(len(x))}
+                    )
+
+                self.all_evaluations[i][f'Pred_nLnLE_{cell_type}'] = y_reversed[i]
+
         return pd.DataFrame(self.selector.optimized_formulations[-num_formulations:])
 
     def _greedy_selection(self, points, n_select, local_tally):
