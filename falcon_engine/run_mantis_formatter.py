@@ -11,6 +11,7 @@ def run_mantis_formatter_pipeline(RUN_NAME, input_param_names, optimized_formula
     '''
     Function to format optimized formulations for MANTIS liquid handler input. 
     Completes first step of copying the template Excel file, then fills in the formulation parameters.
+    Following specification of stock concentrations, converts formulation template into mantis-ready csv. 
     '''
     print_slowly("\n\n--- FORMATTING OPTIMIZED FORMULATIONS FOR MANTIS ---")
 
