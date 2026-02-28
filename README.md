@@ -37,7 +37,7 @@ falcon-lnp-optimization/
 │   ├── plot_optimization_search.ipynb    
 │   ├── plot_PCA.ipynb                     
 │   └── plot_SHAP_analysis.ipynb          
-├── output/                             # Auto-generated suggestions, trained models, plots, logs
+├── output/                             # Gnerated suggestions, trained models, plots, logs
 │   ├── sample_demo/                             # Example output of a demo run 
 ├── datasets/                           # Input dataset directory
 ├── exp_templates/                      # Template formulation sheets and destination for formatted LNP suggestions
@@ -104,7 +104,9 @@ Before running, ensure:
   - `input_param_names`: list of features used for model training
   - `MAX_cell_targets`, `MIN_cell_targets`: target cell types for optimization
   - `opt_methods` : search methods to use for optimization
-  - `num_formulations` : number of formulations to generate 
+  - `num_formulations` : number of formulations to generate
+  - `raw_suggestion_bounds` : hard cutoff for searchable parameter values
+  - `diversity_threshold` : minimum required diversity of a new suggested formulation
 
 ### ▶️ To Run
 
