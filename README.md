@@ -3,17 +3,17 @@ Repository for the paper "FALCON: Closed Loop Multi-Objective Optimization of Li
 
 ## 🦅 What is FALCON?
 
-**FALCON** (_**F**ramework for **A**ctive-**L**earning driven **C**ompositional **O**ptimization of **N**anoparticles_) is a closed-loop experimental-computational pipeline developed by the [Hai-Quan Mao Lab](https://maogroup.jhu.edu/) for intelligent and accelerated design of cell type-selective lipid nanoparticle (LNP) formulations.  
+**FALCON** (_**F**ramework for **A**ctive-**L**earning driven **C**ompositional **O**ptimization of **N**anoparticles_) is a closed-loop experimental-computational pipeline developed by the [Hai-Quan Mao Lab](https://maogroup.jhu.edu/) for intelligent and accelerated design of cell type-selective lipid nanoparticle (LNP) compositions.  
 
 ####  Features:
 
-- **Multi-objective optimization.** Learns to simultaneously *maximize* delivery to desired cell types while *minimizing* off-target effects, improving the efficacy and safety profile of LNPs.
+- **Multi-objective optimization.** Learns to simultaneously *maximize* delivery to desired cell types while *minimizing* delivery to off-target effects.
 
-- **Data-efficient formulation design.** Uses a _sparse initial dataset_ to begin optimization and can rapidly identify high-performing candidates to test, reducing experimental burden.
+- **Data-efficient formulation design.** Uses a _sparse initial dataset_ to begin optimization and can rapidly identify high-performing candidates to test.
 
-- **Exhaustive and rational search.** Surrogate model-guided search algorithms test _hundreds of thousands_ of candidates in silico, outperform brute-force grid search in experiments, and enable interpretability of cell type-selective design principles.
+- **Exhaustive and rational search.** Surrogate model-guided search algorithms test candidates in silico, outperforming brute-force grid search in experiments, and enable interpretability of cell type-selective design principles.
   
-- **Modular architecture**. Framework can be applied for different cell types, input parameters, and optimization goals.
+- **Flexible framework**. Framework can be applied across different cell types and optimization goals.
   
 <img src="FALCON_Schematic.jpg" alt="FALCON Pipeline Schematic" width="1000"/>
 <strong>Figure 1. Schematic Overview of FALCON Workflow</strong>
