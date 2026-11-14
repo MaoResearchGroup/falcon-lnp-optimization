@@ -25,8 +25,7 @@ def get_learning_curve(pipeline, refined = False, NUM_ITER =5, num_splits =5, nu
                         }
     #Config
     save_path = pipeline['Saving']['Models'] + 'learning_curve/'
-    if os.path.exists(save_path) == False:
-        os.makedirs(save_path, 0o666)
+    os.makedirs(save_path, exist_ok=True)
     
 
     trained_model = pipeline['Model_Selection']['Best_Model']['Model']

@@ -57,8 +57,7 @@ def run_Model_Selection(pipeline):
     model_instance.best_model_refit() #Fit best model to all the data as training data 
 
     # Check if save path exists (if not, then create path)
-    if os.path.exists(save_path + f'{model_name}/') == False:
-      os.makedirs(save_path + f'{model_name}/', 0o666)
+    os.makedirs(save_path + f'{model_name}/', exist_ok=True)
       
     # Save Tuning Results CSV for users
     with open(save_path + f'{model_name}/HP_Tuning_Results.csv', 'w', encoding = 'utf-8-sig') as f: #Save file to csv
