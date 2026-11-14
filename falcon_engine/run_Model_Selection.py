@@ -108,11 +108,11 @@ def run_Model_Selection(pipeline):
   sorted_results = model_selection_results.sort_values(by='MAE', ascending=True)
 
   selected_model_name = sorted_results.index[0]
-  selected_trained_model = sorted_results['Model'][0]
-  selected_trained_model_HP = sorted_results['Hyper_Params'][0]
-  selected_model_AE = sorted_results['AE'][0]
-  selected_model_acc = sorted_results['MAE'][0]
-  selected_model_predictions = sorted_results['Predictions'][0]
+  selected_trained_model = sorted_results['Model'].iloc[0]
+  selected_trained_model_HP = sorted_results['Hyper_Params'].iloc[0]
+  selected_model_AE = sorted_results['AE'].iloc[0]
+  selected_model_acc = sorted_results['MAE'].iloc[0]
+  selected_model_predictions = sorted_results['Predictions'].iloc[0]
 
   #Save Name of best model to reference in future analysis
   pipeline['Model_Selection']['Best_Model']['Model_Name'] = selected_model_name
