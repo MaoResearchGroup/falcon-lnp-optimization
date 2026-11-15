@@ -9,6 +9,7 @@ from bayes_opt import BayesianOptimization
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from scipy.stats import qmc
+from scipy.linalg import solve_triangular
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
@@ -336,6 +337,11 @@ class OptimizationSearch:
         min_total_avg_var = np.inf
         best_x = None
 
+        # whitened kernel between training points and eval points (same for every candidate)
+        V_eval = {}
+        for cell, gp in gps.items():
+            V_eval[cell] = solve_triangular(gp.L_, gp.kernel_(gp.X_train_, X_eval), lower=True)
+
         for x in X_candidates:
 
             self.log_evaluation(x)
@@ -347,17 +353,22 @@ class OptimizationSearch:
 
                 kernel = gp.kernel_
                 noise = gp.alpha if np.isscalar(gp.alpha) else np.mean(gp.alpha)
+                y_scale2 = gp._y_train_std ** 2
+                # alpha is in scaled units under normalize_y=True
+                noise = noise * y_scale2
 
                 # variance at candidate
                 _, std_star = gp.predict(x_reshaped, return_std=True)
                 var_star = std_star[0] ** 2
 
-                # kernel between eval points and candidate
+                # posterior covariance between eval points and candidate
                 k_eval_star = kernel(X_eval, x_reshaped).flatten()
+                v_star = solve_triangular(gp.L_, kernel(gp.X_train_, x_reshaped), lower=True).flatten()
+                cov_eval_star = (k_eval_star - V_eval[cell].T @ v_star) * y_scale2
 
                 # closed-form updated variance
                 var_new = base_eval_var[cell].flatten() - (
-                    (k_eval_star ** 2) / (var_star + noise)
+                    (cov_eval_star ** 2) / (var_star + noise)
                 )
 
                 total_avg_var += np.mean(var_new)
