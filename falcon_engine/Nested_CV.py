@@ -309,13 +309,13 @@ class NESTED_CV:
 
         mean_baseline_AE = abs(self.y_final_test - mean_baseline_pred)
         median_baseline_AE = abs(self.y_final_test - median_baseline_pred)
-        mean_baseline_MAE = float(mean_baseline_AE.mean(axis=0))
-        median_baseline_MAE = float(median_baseline_AE.mean(axis=0))
+        mean_baseline_MAE = float(mean_baseline_AE.to_numpy().mean())
+        median_baseline_MAE = float(median_baseline_AE.to_numpy().mean())
 
         n = len(AE)
         model_AE_se = float(AE.std(ddof=1)) / np.sqrt(n)
-        mean_baseline_se = float(mean_baseline_AE.std(ddof=1)) / np.sqrt(n)
-        median_baseline_se = float(median_baseline_AE.std(ddof=1)) / np.sqrt(n)
+        mean_baseline_se = float(mean_baseline_AE.to_numpy().std(ddof=1)) / np.sqrt(n)
+        median_baseline_se = float(median_baseline_AE.to_numpy().std(ddof=1)) / np.sqrt(n)
       
         print_slowly('\n################################################################\n\n BEST MODEL FINAL HOLD_OUT PERFORMANCE:')
         print_slowly(f'FINAL_Hold_Out_MAE: {acc:.3f} ± {model_AE_se:.3f}')
